@@ -47,7 +47,8 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT iMessage, WPARAM wParam, LPARAM lParam)
 	HDC hDC;
 	int n, m, k;
 	int r[2], g[2], b[2];
-	TCHAR str[100] = L"";
+	TCHAR str1[100] = L"";
+	TCHAR str2[100] = L"";
 
 	switch (iMessage) {
 	case WM_PAINT:
@@ -59,23 +60,31 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT iMessage, WPARAM wParam, LPARAM lParam)
 			k = rand() % 27;
 		} while (n == 0 || n == 1 || m == 0 || m == 1 ||k == 0 || k == 1);
 		for (int i = 0; i < k; i++) {
-			str[i] = i + 'a';
+			str1[i] = i + 'a';
+			str2[i] = i + 'A';
 		}
+		str1[k] = '\0';
+		str2[k] = '\0';
 		for (int i = 0; i < m; i++) {
 			for (int j = 0; j < n; j++) {
 				RECT rect;
 				rect.left = 0 + (800 / n * j);
-				rect.right = rect.left + 60;
+				rect.right = rect.left + 80;
 				rect.top = 0 + (600 / m * i);
-				rect.bottom = rect.top + 60;
+				rect.bottom = rect.top + 200;
 				do {
 					for (int l = 0; l < 2; l++) {
-						r[i] = rand() % 255;
-						g[i] = rand() % 255;
-						b[i] = rand() % 255;
+						r[l] = rand() % 255;
+						g[l] = rand() % 255;
+						b[l] = rand() % 255;
 					}
-				} while (r[0] <= r[1] + 50 && r[0] >= r[1] - 50 && g[0] <= g[1] + 50 && g[0] >= g[1] - 50 && b[0] <= b[1] + 50 && b[0] >= b[1] - 50);
-				DrawText(hDC, str, _tcslen(str), &rect, DT_WORDBREAK);
+				} while (r[0] <= r[1] + 100 && r[0] >= r[1] - 100 && g[0] <= g[1] + 100 && g[0] >= g[1] - 100 && b[0] <= b[1] + 100 && b[0] >= b[1] - 100);
+				SetTextColor(hDC, RGB(r[0], g[0], b[0]));
+				SetBkColor(hDC, RGB(r[1], g[1], b[1]));
+				if ((m + n) % 2 == 0)
+					DrawText(hDC, str1, _tcslen(str1), &rect, DT_WORDBREAK | DT_EDITCONTROL);
+				else
+					DrawText(hDC, str2, _tcslen(str2), &rect, DT_WORDBREAK | DT_EDITCONTROL);
 			}
 		}
 		EndPaint(hWnd, &ps);
