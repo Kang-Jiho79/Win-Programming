@@ -45,47 +45,32 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT iMessage, WPARAM wParam, LPARAM lParam)
 {
 	PAINTSTRUCT ps;
 	HDC hDC;
-	RECT rect[8];
-	TCHAR str[8][100];
-	TCHAR strline[100];
+	int x = 0;
+	int y = 0;
+	TCHAR str[100];
 
 	switch (iMessage) {
 	case WM_PAINT:
-		
-		for (int i = 0; i < 4; i++) {
-			if (i == 0) {
-				rect[i].left = 0;
-				rect[i].top = 0;
-				rect[i].right = 100;
-				rect[i].bottom = 300;
-				rect[i + 4].left = 0;
-				rect[i + 4].top = 300;
-				rect[i + 4].right = 100;
-				rect[i + 4].bottom = 600;
-			}
-			else if (i > 0) {
-				rect[i].left = rect[i - 1].left + 100;
-				rect[i].right = rect[i - 1].right + 100;
-				rect[i].top = 0;
-				rect[i].bottom = 300;
-				rect[i + 4].left = rect[i + 3].left + 100;
-				rect[i + 4].right = rect[i + 3].right + 100;
-				rect[i + 4].top = 300;
-				rect[i + 4].bottom = 600;
-			}
-		}
+	{
+		hDC = BeginPaint(hWnd, &ps);
 		for (int i = 2; i < 10; i++) {
 			for (int j = 1; j < 10; j++) {
-				wsprintf(strline, L"%d * %d = %d", i, j, i * j);
-				_tcscat(str[i - 2], strline);
+				wsprintf(str, L"%d * %d = %d", i, j, i * j);
+				TextOut(hDC, x, y, str, _tcslen(str));
+				y = y + 20;
 			}
-		}
-		hDC = BeginPaint(hWnd, &ps);
-		for (int i = 0; i < 8; i++) {
-			DrawText(hDC, str[i], _tcslen(str[i]), &rect[i], DT_CENTER | DT_WORDBREAK);
+			if (i == 5) {
+				x = 0;
+				y = 300;
+			}
+			else {
+				x = x + 200;
+				y = y - 180;
+			}
 		}
 		EndPaint(hWnd, &ps);
 		break;
+	}
 	case WM_DESTROY:
 		PostQuitMessage(0);
 		return 0;

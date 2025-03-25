@@ -45,47 +45,42 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT iMessage, WPARAM wParam, LPARAM lParam)
 {
 	PAINTSTRUCT ps;
 	HDC hDC;
-	RECT rect[8];
-	TCHAR str[8][100];
-	TCHAR strline[100];
+	int n, m, k;
+	int r[2], g[2], b[2];
+	TCHAR str[100] = L"";
 
 	switch (iMessage) {
 	case WM_PAINT:
-		
-		for (int i = 0; i < 4; i++) {
-			if (i == 0) {
-				rect[i].left = 0;
-				rect[i].top = 0;
-				rect[i].right = 100;
-				rect[i].bottom = 300;
-				rect[i + 4].left = 0;
-				rect[i + 4].top = 300;
-				rect[i + 4].right = 100;
-				rect[i + 4].bottom = 600;
-			}
-			else if (i > 0) {
-				rect[i].left = rect[i - 1].left + 100;
-				rect[i].right = rect[i - 1].right + 100;
-				rect[i].top = 0;
-				rect[i].bottom = 300;
-				rect[i + 4].left = rect[i + 3].left + 100;
-				rect[i + 4].right = rect[i + 3].right + 100;
-				rect[i + 4].top = 300;
-				rect[i + 4].bottom = 600;
-			}
-		}
-		for (int i = 2; i < 10; i++) {
-			for (int j = 1; j < 10; j++) {
-				wsprintf(strline, L"%d * %d = %d", i, j, i * j);
-				_tcscat(str[i - 2], strline);
-			}
-		}
+	{
 		hDC = BeginPaint(hWnd, &ps);
-		for (int i = 0; i < 8; i++) {
-			DrawText(hDC, str[i], _tcslen(str[i]), &rect[i], DT_CENTER | DT_WORDBREAK);
+		do {
+			n = rand() % 11;
+			m = rand() % 11;
+			k = rand() % 27;
+		} while (n == 0 || n == 1 || m == 0 || m == 1 ||k == 0 || k == 1);
+		for (int i = 0; i < k; i++) {
+			str[i] = i + 'a';
+		}
+		for (int i = 0; i < m; i++) {
+			for (int j = 0; j < n; j++) {
+				RECT rect;
+				rect.left = 0 + (800 / n * j);
+				rect.right = rect.left + 60;
+				rect.top = 0 + (600 / m * i);
+				rect.bottom = rect.top + 60;
+				do {
+					for (int l = 0; l < 2; l++) {
+						r[i] = rand() % 255;
+						g[i] = rand() % 255;
+						b[i] = rand() % 255;
+					}
+				} while (r[0] <= r[1] + 50 && r[0] >= r[1] - 50 && g[0] <= g[1] + 50 && g[0] >= g[1] - 50 && b[0] <= b[1] + 50 && b[0] >= b[1] - 50);
+				DrawText(hDC, str, _tcslen(str), &rect, DT_WORDBREAK);
+			}
 		}
 		EndPaint(hWnd, &ps);
 		break;
+	}
 	case WM_DESTROY:
 		PostQuitMessage(0);
 		return 0;
