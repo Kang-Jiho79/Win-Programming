@@ -49,6 +49,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT iMessage, WPARAM wParam, LPARAM lParam)
 	int r[2], g[2], b[2];
 	TCHAR str1[100] = L"";
 	TCHAR str2[100] = L"";
+	bool check = true;
 
 	switch (iMessage) {
 	case WM_PAINT:
@@ -81,10 +82,14 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT iMessage, WPARAM wParam, LPARAM lParam)
 				} while (r[0] <= r[1] + 100 && r[0] >= r[1] - 100 && g[0] <= g[1] + 100 && g[0] >= g[1] - 100 && b[0] <= b[1] + 100 && b[0] >= b[1] - 100);
 				SetTextColor(hDC, RGB(r[0], g[0], b[0]));
 				SetBkColor(hDC, RGB(r[1], g[1], b[1]));
-				if ((m + n) % 2 == 0)
+				if (check) {
 					DrawText(hDC, str1, _tcslen(str1), &rect, DT_WORDBREAK | DT_EDITCONTROL);
-				else
+					check = false;
+				}
+				else {
 					DrawText(hDC, str2, _tcslen(str2), &rect, DT_WORDBREAK | DT_EDITCONTROL);
+					check = true;
+				}
 			}
 		}
 		EndPaint(hWnd, &ps);

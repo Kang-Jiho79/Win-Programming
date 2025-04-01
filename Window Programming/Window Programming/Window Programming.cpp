@@ -1,6 +1,8 @@
 ﻿#define _CRT_SECURE_NO_WARNINGS
 #include <windows.h>
 #include <tchar.h>
+#include <stdlib.h>
+#include <time.h>
 
 HINSTANCE g_hInst;
 LPCTSTR IpszClass = L"Window Class Name";
@@ -8,8 +10,18 @@ LPCTSTR IpszWindowName = L"Window Programming Lab";
 
 LRESULT CALLBACK WndProc(HWND hWnd, UINT iMessage, WPARAM wParam, LPARAM lParam);
 
+TCHAR str[81] = L"\0";
+int count = 0;
+int x, y, r, g, b;
+
 int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevlnstance, LPSTR lpszCmdParam, int nCMdShow)	// 메인함수 
 {
+	srand(time(NULL));
+	x = rand() % 600;
+	y = rand() % 500;
+	r = rand() % 255;
+	g = rand() % 255;
+	b = rand() % 255;
 	HWND hWnd;
 	MSG Message;
 	WNDCLASSEX WndClass;	//윈도우 클래스
@@ -41,49 +53,38 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevlnstance, LPSTR lpszCmdPa
 	return Message.wParam;
 }
 
+
+
+
 LRESULT CALLBACK WndProc(HWND hWnd, UINT iMessage, WPARAM wParam, LPARAM lParam)
 {
 	PAINTSTRUCT ps;
 	HDC hDC;
-	RECT rect[8];
-	TCHAR str[8][100];
-	TCHAR strline[100];
 
 	switch (iMessage) {
+	case WM_CHAR :
+	{
+		if (wParam == VK_BACK) {
+			if (count > 0)
+				count--;
+		}
+		else if (wParam == VK_RETURN) {
+			y = y + 20;
+		}
+		else if (wParam == VK_ESCAPE) {
+			PostQuitMessage(0);
+			return 0;
+		}
+		else if (count <= 79) {
+			str[count++] = wParam;
+		}
+		str[count] = '\0';
+		InvalidateRect(hWnd, NULL, TRUE);
+	}
 	case WM_PAINT:
-		
-		for (int i = 0; i < 4; i++) {
-			if (i == 0) {
-				rect[i].left = 0;
-				rect[i].top = 0;
-				rect[i].right = 100;
-				rect[i].bottom = 300;
-				rect[i + 4].left = 0;
-				rect[i + 4].top = 300;
-				rect[i + 4].right = 100;
-				rect[i + 4].bottom = 600;
-			}
-			else if (i > 0) {
-				rect[i].left = rect[i - 1].left + 100;
-				rect[i].right = rect[i - 1].right + 100;
-				rect[i].top = 0;
-				rect[i].bottom = 300;
-				rect[i + 4].left = rect[i + 3].left + 100;
-				rect[i + 4].right = rect[i + 3].right + 100;
-				rect[i + 4].top = 300;
-				rect[i + 4].bottom = 600;
-			}
-		}
-		for (int i = 2; i < 10; i++) {
-			for (int j = 1; j < 10; j++) {
-				wsprintf(strline, L"%d * %d = %d", i, j, i * j);
-				_tcscat(str[i - 2], strline);
-			}
-		}
 		hDC = BeginPaint(hWnd, &ps);
-		for (int i = 0; i < 8; i++) {
-			DrawText(hDC, str[i], _tcslen(str[i]), &rect[i], DT_CENTER | DT_WORDBREAK);
-		}
+		SetTextColor(hDC, RGB(r, g, b));
+		TextOut(hDC, x, y, str, _tcsclen(str));
 		EndPaint(hWnd, &ps);
 		break;
 	case WM_DESTROY:

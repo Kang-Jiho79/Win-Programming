@@ -1,6 +1,9 @@
 ﻿#define _CRT_SECURE_NO_WARNINGS
 #include <windows.h>
 #include <tchar.h>
+#include <stdlib.h>
+#include <stdio.h>
+#include <time.h>
 
 HINSTANCE g_hInst;
 LPCTSTR IpszClass = L"Window Class Name";
@@ -8,8 +11,29 @@ LPCTSTR IpszWindowName = L"Window Programming Lab";
 
 LRESULT CALLBACK WndProc(HWND hWnd, UINT iMessage, WPARAM wParam, LPARAM lParam);
 
+TCHAR str[100] = L"\0";
+TCHAR s[4] = L"\0";
+int count;
+int x, y, n, r[2], g[2], b[2];
+
 int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevlnstance, LPSTR lpszCmdParam, int nCMdShow)	// 메인함수 
 {
+	srand(time(NULL));
+	x = rand() % 600;
+	y = rand() % 400;
+	n = rand() % 200;
+	count = rand() % 15 + 5;
+	for (int i = 0; i < 2; i++) {
+		r[i] = rand() % 255;
+		g[i] = rand() % 255;
+		b[i] = rand() % 255;
+	}
+	wsprintf(s, L"%d", n);
+	for (int i = 0; i < count; i++) {
+		_tcscat(str, s);
+	}
+	str[count] = '\0';
+
 	HWND hWnd;
 	MSG Message;
 	WNDCLASSEX WndClass;	//윈도우 클래스
@@ -41,39 +65,56 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevlnstance, LPSTR lpszCmdPa
 	return Message.wParam;
 }
 
+
+
+
 LRESULT CALLBACK WndProc(HWND hWnd, UINT iMessage, WPARAM wParam, LPARAM lParam)
 {
 	PAINTSTRUCT ps;
 	HDC hDC;
-	int x[11];
-	int y[11];
-	TCHAR str[100];
 
 	switch (iMessage) {
-	case WM_PAINT:
+	case WM_CHAR:
+		if (wParam == 'q') {
+			PostQuitMessage(0);
+			return 0;
+		}
+		break;
+	case WM_KEYDOWN:
 	{
+		if (wParam == VK_RETURN) {
+			srand(time(NULL));
+			x = rand() % 600;
+			y = rand() % 400;
+			n = rand() % 200;
+			count = rand() % 15 + 5;
+			for (int i = 0; i<4;i++)
+				s[i] = '\0';
+			for (int i = 0; i < 2; i++) {
+				r[i] = rand() % 255;
+				g[i] = rand() % 255;
+				b[i] = rand() % 255;
+			}
+			wsprintf(s, L"%d", n);
+			for (int i = 0; i < 100; i++)
+				str[i] = '\0';
+			for (int i = 0; i < count; i++) {
+				_tcscat(str, s);
+			}
+			str[(count*_tcslen(s)) + 1] = '\0';
+		}
+		InvalidateRect(hWnd, NULL, TRUE);
+		break;
+	}
+	case WM_PAINT:
 		hDC = BeginPaint(hWnd, &ps);
-		x[0] = 400;
-		y[0] = 300;
-		wsprintf(str, L"%d: (%d, %d)", 0, x[0], y[0]);
-		TextOut(hDC, x[0], y[0], str, _tcslen(str));
-		for (int i = 1; i < 11; i++) {
-			bool check = false;
-			do {
-				check = false;
-				x[i] = rand() % 701;
-				y[i] = rand() % 551;
-				for (int j = 0; j < i; j++) {
-					if (x[i] >= x[j] && x[i] <= x[j] + 100&& x[i]+100 >= x[j] && x[i]+100 <= x[j] + 100 && y[i] >= y[j] && y[i] <= y[j] + 50&& y[i]+50 >= y[j] && y[i]+50 <= y[j] + 50)
-						check = true;
-				}
-			} while (check);
-			wsprintf(str, L"%d: (%d, %d)", i, x[i], y[i]);
-			TextOut(hDC, x[i], y[i], str, _tcslen(str));
+		SetTextColor(hDC, RGB(r[0], g[0], b[0]));
+		SetBkColor(hDC, RGB(r[1], g[1], b[0]));
+		for (int i = 0; i < count; i++) {
+			TextOut(hDC, x, y+(20*(i+1)), str, _tcsclen(str));
 		}
 		EndPaint(hWnd, &ps);
 		break;
-	}
 	case WM_DESTROY:
 		PostQuitMessage(0);
 		return 0;
