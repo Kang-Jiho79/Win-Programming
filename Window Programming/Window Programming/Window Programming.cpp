@@ -10,18 +10,8 @@ LPCTSTR IpszWindowName = L"Window Programming Lab";
 
 LRESULT CALLBACK WndProc(HWND hWnd, UINT iMessage, WPARAM wParam, LPARAM lParam);
 
-TCHAR str[81] = L"\0";
-int count = 0;
-int x, y, r, g, b;
-
 int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevlnstance, LPSTR lpszCmdParam, int nCMdShow)	// 메인함수 
 {
-	srand(time(NULL));
-	x = rand() % 600;
-	y = rand() % 500;
-	r = rand() % 255;
-	g = rand() % 255;
-	b = rand() % 255;
 	HWND hWnd;
 	MSG Message;
 	WNDCLASSEX WndClass;	//윈도우 클래스
@@ -54,37 +44,164 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevlnstance, LPSTR lpszCmdPa
 }
 
 
-
+TCHAR str[10][31] = {L"\0"};
+TCHAR s[31] = L"\0";
+TCHAR r[31] = L"\0";
+int count[10] = { 0 };
+int entercount = 0;
+bool check = false;
 
 LRESULT CALLBACK WndProc(HWND hWnd, UINT iMessage, WPARAM wParam, LPARAM lParam)
 {
 	PAINTSTRUCT ps;
 	HDC hDC;
-
+	SIZE size;
 	switch (iMessage) {
+	case WM_CREATE: 
+	{
+		CreateCaret(hWnd, NULL, 5, 15);
+		ShowCaret(hWnd);
+	}
+	break;
+	case WM_KEYDOWN:
+	{
+		if (wParam == VK_ESCAPE) {		//초기화
+
+		}
+		else if (wParam == VK_TAB){		//공백 5개 넣기 30자 넘어가면 개행
+
+		}
+		else if (wParam == VK_HOME) {	//줄 맨앞으로 이동
+
+		}
+		else if (wParam == VK_END) {	//줄 맨뒤로 이동 30자가 다 차있으면 다음줄로
+
+		}
+		else if (wParam == VK_INSERT) {	//사이에 문자 추가 다시누르면 덮어쓰기
+
+		}
+		else if (wParam == VK_DELETE) { //현재 단어를 지운다
+
+		}
+		else if (wParam == VK_LEFT) {	//캐럿 위치이동
+
+		}
+		else if (wParam == VK_RIGHT) {
+		}
+		else if (wParam == VK_UP) {
+
+		}
+		else if (wParam == VK_DOWN) {
+
+		}
+		else if (wParam == VK_PRIOR) {	//캐럿의 위치를 위/아래로 3줄 이동
+
+		}
+		else if (wParam == VK_NEXT) {
+
+		}
+	}
+	break;
 	case WM_CHAR :
 	{
 		if (wParam == VK_BACK) {
-			if (count > 0)
-				count--;
+			if (!check) {
+				if (count[entercount] > 0) {
+					count[entercount]--;
+					str[entercount][count[entercount]] = '\0';
+				}
+				else if (count[entercount] == 0) {
+					if (entercount > 0)
+						entercount--;
+				}
+			}
+			else {
+				if (count[entercount] > 0) {
+					str[entercount][count[entercount]] = r[count[entercount]];
+					count[entercount]--;
+				}
+				else if (count[entercount] == 0) {
+					if (entercount > 0)
+						entercount--;
+				}
+			}
 		}
 		else if (wParam == VK_RETURN) {
-			y = y + 20;
+			if (entercount == 9) {
+				entercount = 0;
+				for (int i = 0; i < 10; i++) {
+					count[i] = 0;
+				}
+				check = true;
+			}
+			else {
+				entercount++;
+			}
+			for (int i = 0; i < 30; i++)
+				s[i] = '\0';
+			for (int i = 0; i < 30; i++)
+				r[i] = str[entercount][i];
+			
 		}
-		else if (wParam == VK_ESCAPE) {
-			PostQuitMessage(0);
-			return 0;
+		else if (count[entercount] <= 29) {
+			if (check) {
+				if (str[entercount][count[entercount]] == '\0') {
+					s[count[entercount]] = wParam;
+					str[entercount][count[entercount]++] = wParam;
+					s[count[entercount]] = '\0';
+					str[entercount][count[entercount]] = '\0';
+				}
+				else {
+					s[count[entercount]] = wParam;
+					str[entercount][count[entercount]++] = wParam;
+				}
+			}
+			else {
+				if (str[entercount][count[entercount]] == '\0') {
+					str[entercount][count[entercount]++] = wParam;
+					str[entercount][count[entercount]] = '\0';
+				}
+				else {
+					str[entercount][count[entercount]++] = wParam;
+				}
+			}
 		}
-		else if (count <= 79) {
-			str[count++] = wParam;
+		else if (count[entercount] == 30) {
+			if (entercount == 9) {
+				entercount = 0;
+				for (int i = 0; i < 10; i++) {
+					count[i] = 0;
+				}
+				check = true;
+			}
+			else {
+				entercount++;
+			}
+			for (int i = 0; i < 30; i++)
+				s[i] = '\0';
+			for (int i = 0; i <30; i++)
+				r[i] = str[entercount][i];
 		}
-		str[count] = '\0';
+		
 		InvalidateRect(hWnd, NULL, TRUE);
 	}
+	break;
 	case WM_PAINT:
 		hDC = BeginPaint(hWnd, &ps);
-		SetTextColor(hDC, RGB(r, g, b));
-		TextOut(hDC, x, y, str, _tcsclen(str));
+		if (!check) {
+			GetTextExtentPoint32(hDC, str[entercount], lstrlen(str[entercount]), &size);
+		}
+		else
+			GetTextExtentPoint32(hDC, s, lstrlen(s), &size);
+		if (!check) {
+			for (int i = 0; i < entercount + 1; i++)
+				TextOut(hDC, 0, 20 * i, str[i], _tcsclen(str[i]));
+		}
+		else {
+			for (int i = 0 ; i < 10; i++)
+				TextOut(hDC, 0, 20 * i, str[i], _tcsclen(str[i]));
+		}
+		SetCaretPos(size.cx, 20 * entercount);
 		EndPaint(hWnd, &ps);
 		break;
 	case WM_DESTROY:
