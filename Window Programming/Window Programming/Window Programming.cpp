@@ -45,11 +45,27 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevlnstance, LPSTR lpszCmdPa
 
 
 TCHAR str[10][31] = {L"\0"};
-TCHAR s[31] = L"\0";
-TCHAR r[31] = L"\0";
+TCHAR CaretPoint[31] = L"\0";
 int count[10] = { 0 };
 int entercount = 0;
-bool check = false;
+int present = 0;
+
+void StrReset(TCHAR str[])
+{
+	for (int i = 0; i < lstrlen(str); i++)
+		str[i] = '\0';
+	present = 0;
+}
+
+void StrSet(TCHAR str1[][31], TCHAR str2[],int setenter, int setcount)
+{
+	StrReset(str2);
+	for (int i = 0; i < setcount; i++) {
+		str2[i] = str1[setenter][i];
+	}
+	str2[setcount] = '\0';
+	present = setcount;
+}
 
 LRESULT CALLBACK WndProc(HWND hWnd, UINT iMessage, WPARAM wParam, LPARAM lParam)
 {
@@ -69,13 +85,33 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT iMessage, WPARAM wParam, LPARAM lParam)
 
 		}
 		else if (wParam == VK_TAB){		//공백 5개 넣기 30자 넘어가면 개행
-
+			if (count[entercount] + 5 <= 30) {
+				for (int i = 0; i < 5; i++) {
+					str[entercount][present] = ' ';
+					CaretPoint[present++] = ' ';
+					count[entercount]++;
+				}
+				CaretPoint[present] = '\0';
+			}
+			else {
+				for (int i = present; i < 30; i++) {
+					str[entercount][i] = ' ';
+				}
+				entercount++;
+				StrSet(str, CaretPoint, entercount, 0);
+			}
 		}
 		else if (wParam == VK_HOME) {	//줄 맨앞으로 이동
-
+			StrReset(CaretPoint);
 		}
 		else if (wParam == VK_END) {	//줄 맨뒤로 이동 30자가 다 차있으면 다음줄로
-
+			if (count[entercount] == 30) {
+				entercount++;
+				StrSet(str, CaretPoint, entercount, 0);
+			}
+			else {
+				StrSet(str, CaretPoint, entercount, count[entercount]);
+			}
 		}
 		else if (wParam == VK_INSERT) {	//사이에 문자 추가 다시누르면 덮어쓰기
 
@@ -84,15 +120,31 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT iMessage, WPARAM wParam, LPARAM lParam)
 
 		}
 		else if (wParam == VK_LEFT) {	//캐럿 위치이동
-
+			if(present >0)
+				CaretPoint[present--] = '\0';
 		}
 		else if (wParam == VK_RIGHT) {
+			if (present <count[entercount])
+				CaretPoint[present++] = str[entercount][present];
 		}
 		else if (wParam == VK_UP) {
-
+			if (entercount > 0) {
+				if (present > count[entercount-1]) {
+					StrSet(str, CaretPoint, entercount - 1, count[entercount - 1]);
+					entercount--;
+				}
+				else
+					StrSet(str, CaretPoint, --entercount, present);
+			}
 		}
 		else if (wParam == VK_DOWN) {
-
+			if (entercount < 9)
+				if (present > count[entercount+1]) {
+					StrSet(str, CaretPoint, entercount + 1, count[entercount + 1]);
+					entercount++;
+				}
+				else
+					StrSet(str, CaretPoint, ++entercount, present);
 		}
 		else if (wParam == VK_PRIOR) {	//캐럿의 위치를 위/아래로 3줄 이동
 
@@ -100,107 +152,80 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT iMessage, WPARAM wParam, LPARAM lParam)
 		else if (wParam == VK_NEXT) {
 
 		}
+		InvalidateRect(hWnd, NULL, TRUE);
 	}
 	break;
 	case WM_CHAR :
 	{
 		if (wParam == VK_BACK) {
-			if (!check) {
-				if (count[entercount] > 0) {
-					count[entercount]--;
-					str[entercount][count[entercount]] = '\0';
-				}
-				else if (count[entercount] == 0) {
-					if (entercount > 0)
-						entercount--;
+			if (present == 0) {
+				if (entercount > 0) {
+					StrSet(str, CaretPoint, entercount - 1, count[entercount - 1]);
+					while(str[entercount][0] != '\0' && count[entercount-1] < 30) {
+						str[entercount - 1][count[entercount - 1]++] = str[entercount][0];
+						for (int i = 0; i < count[entercount]; i++)
+							str[entercount][i] = str[entercount][i + 1];
+						count[entercount]--;
+					}
+					entercount--;
 				}
 			}
 			else {
-				if (count[entercount] > 0) {
-					str[entercount][count[entercount]] = r[count[entercount]];
-					count[entercount]--;
+				for (int i = present-1; i < count[entercount]+1; i++) {
+					str[entercount][i] = str[entercount][i + 1];
 				}
-				else if (count[entercount] == 0) {
-					if (entercount > 0)
-						entercount--;
-				}
+				count[entercount]--;
+				CaretPoint[present--] = '\0';
 			}
 		}
 		else if (wParam == VK_RETURN) {
 			if (entercount == 9) {
 				entercount = 0;
-				for (int i = 0; i < 10; i++) {
-					count[i] = 0;
-				}
-				check = true;
 			}
 			else {
 				entercount++;
 			}
-			for (int i = 0; i < 30; i++)
-				s[i] = '\0';
-			for (int i = 0; i < 30; i++)
-				r[i] = str[entercount][i];
-			
+			StrReset(CaretPoint);
 		}
-		else if (count[entercount] <= 29) {
-			if (check) {
-				if (str[entercount][count[entercount]] == '\0') {
-					s[count[entercount]] = wParam;
-					str[entercount][count[entercount]++] = wParam;
-					s[count[entercount]] = '\0';
-					str[entercount][count[entercount]] = '\0';
-				}
-				else {
-					s[count[entercount]] = wParam;
-					str[entercount][count[entercount]++] = wParam;
-				}
-			}
-			else {
-				if (str[entercount][count[entercount]] == '\0') {
-					str[entercount][count[entercount]++] = wParam;
-					str[entercount][count[entercount]] = '\0';
+		else if (wParam != VK_TAB) {
+			if (count[entercount] <= 29) {
+				if (present < count[entercount]) {
+					str[entercount][present] = wParam;
+					CaretPoint[present++] = wParam;
 				}
 				else {
 					str[entercount][count[entercount]++] = wParam;
+					CaretPoint[present++] = wParam;
+				}
+
+			}
+			else if (count[entercount] == 30) {
+				if (entercount == 9) {
+					entercount = 0;
+				}
+				else {
+					entercount++;
+				}
+				StrReset(CaretPoint);
+				if (present < count[entercount]) {
+					str[entercount][present] = wParam;
+					CaretPoint[present++] = wParam;
+				}
+				else {
+					str[entercount][count[entercount]++] = wParam;
+					CaretPoint[present++] = wParam;
 				}
 			}
-		}
-		else if (count[entercount] == 30) {
-			if (entercount == 9) {
-				entercount = 0;
-				for (int i = 0; i < 10; i++) {
-					count[i] = 0;
-				}
-				check = true;
-			}
-			else {
-				entercount++;
-			}
-			for (int i = 0; i < 30; i++)
-				s[i] = '\0';
-			for (int i = 0; i <30; i++)
-				r[i] = str[entercount][i];
 		}
 		
 		InvalidateRect(hWnd, NULL, TRUE);
 	}
 	break;
 	case WM_PAINT:
-		hDC = BeginPaint(hWnd, &ps);
-		if (!check) {
-			GetTextExtentPoint32(hDC, str[entercount], lstrlen(str[entercount]), &size);
-		}
-		else
-			GetTextExtentPoint32(hDC, s, lstrlen(s), &size);
-		if (!check) {
-			for (int i = 0; i < entercount + 1; i++)
-				TextOut(hDC, 0, 20 * i, str[i], _tcsclen(str[i]));
-		}
-		else {
-			for (int i = 0 ; i < 10; i++)
-				TextOut(hDC, 0, 20 * i, str[i], _tcsclen(str[i]));
-		}
+		hDC = BeginPaint(hWnd, &ps);	
+		GetTextExtentPoint32(hDC, CaretPoint, present, &size);
+		for (int i = 0 ; i < 10; i++)
+			TextOut(hDC, 0, 20 * i, str[i], _tcsclen(str[i]));
 		SetCaretPos(size.cx, 20 * entercount);
 		EndPaint(hWnd, &ps);
 		break;

@@ -2,7 +2,6 @@
 #include <windows.h>
 #include <tchar.h>
 #include <stdlib.h>
-#include <stdio.h>
 #include <time.h>
 
 HINSTANCE g_hInst;
@@ -11,29 +10,8 @@ LPCTSTR IpszWindowName = L"Window Programming Lab";
 
 LRESULT CALLBACK WndProc(HWND hWnd, UINT iMessage, WPARAM wParam, LPARAM lParam);
 
-TCHAR str[100] = L"\0";
-TCHAR s[4] = L"\0";
-int count;
-int x, y, n, r[2], g[2], b[2];
-
 int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevlnstance, LPSTR lpszCmdParam, int nCMdShow)	// 메인함수 
 {
-	srand(time(NULL));
-	x = rand() % 600;
-	y = rand() % 400;
-	n = rand() % 200;
-	count = rand() % 15 + 5;
-	for (int i = 0; i < 2; i++) {
-		r[i] = rand() % 255;
-		g[i] = rand() % 255;
-		b[i] = rand() % 255;
-	}
-	wsprintf(s, L"%d", n);
-	for (int i = 0; i < count; i++) {
-		_tcscat(str, s);
-	}
-	str[count] = '\0';
-
 	HWND hWnd;
 	MSG Message;
 	WNDCLASSEX WndClass;	//윈도우 클래스
@@ -66,55 +44,146 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevlnstance, LPSTR lpszCmdPa
 }
 
 
-
+int check = 0;
 
 LRESULT CALLBACK WndProc(HWND hWnd, UINT iMessage, WPARAM wParam, LPARAM lParam)
 {
 	PAINTSTRUCT ps;
 	HDC hDC;
-
+	HPEN hDefPen, hSelectPen;
+	HBRUSH hDefBrush, hSelectBrush;
+	RECT Now;
+	POINT Triangle[3] = {};
+	GetClientRect(hWnd, &Now);
+	int x = (Now.left+Now.right) / 2 -150, y = (Now.top+Now.bottom) / 2 - 150;
+	int Nowx, Nowy;
 	switch (iMessage) {
+
 	case WM_CHAR:
-		if (wParam == 'q') {
+	{
+		if (wParam == 't')
+			check = 1;
+		else if (wParam == 'r')
+			check = 2;
+		else if (wParam == 'l')
+			check = 3;
+		else if (wParam == 'q') {
 			PostQuitMessage(0);
 			return 0;
 		}
-		break;
-	case WM_KEYDOWN:
-	{
-		if (wParam == VK_RETURN) {
-			srand(time(NULL));
-			x = rand() % 600;
-			y = rand() % 400;
-			n = rand() % 200;
-			count = rand() % 15 + 5;
-			for (int i = 0; i<4;i++)
-				s[i] = '\0';
-			for (int i = 0; i < 2; i++) {
-				r[i] = rand() % 255;
-				g[i] = rand() % 255;
-				b[i] = rand() % 255;
-			}
-			wsprintf(s, L"%d", n);
-			for (int i = 0; i < 100; i++)
-				str[i] = '\0';
-			for (int i = 0; i < count; i++) {
-				_tcscat(str, s);
-			}
-			str[(count*_tcslen(s)) + 1] = '\0';
-		}
 		InvalidateRect(hWnd, NULL, TRUE);
-		break;
 	}
+	break;
 	case WM_PAINT:
+	{
 		hDC = BeginPaint(hWnd, &ps);
-		SetTextColor(hDC, RGB(r[0], g[0], b[0]));
-		SetBkColor(hDC, RGB(r[1], g[1], b[0]));
-		for (int i = 0; i < count; i++) {
-			TextOut(hDC, x, y+(20*(i+1)), str, _tcsclen(str));
+		Rectangle(hDC, x, y, x + 300, y + 300);
+		if (check == 1) {
+			hSelectPen = CreatePen(PS_SOLID, 1, RGB(255, 0, 0));
+			hSelectBrush = CreateSolidBrush(RGB(255, 0, 0));
+			hDefPen = (HPEN)SelectObject(hDC, hSelectPen);
+			hDefBrush = (HBRUSH)SelectObject(hDC, hSelectBrush);
+			for (int i = 0; i < 11; i++) {
+				Nowx = x + (25 * (i + 1));
+				Nowy = y;
+				Triangle[0] = { Nowx, (Nowy -7) };
+				Triangle[1] = { Nowx + 10,Nowy +4 };
+				Triangle[2] = { Nowx - 10,Nowy +4 };
+				Polygon(hDC, Triangle, 3);
+			}
+			for (int i = 0; i < 11; i++) {
+				Nowx = x + (25 * (i + 1));
+				Nowy = y + 300;
+				Triangle[0] = { Nowx, (Nowy - 7) };
+				Triangle[1] = { Nowx + 10,Nowy + 4 };
+				Triangle[2] = { Nowx - 10,Nowy + 4 };
+				Polygon(hDC, Triangle, 3);
+			}
+			for (int i = 0; i < 11; i++) {
+				Nowx = x;
+				Nowy = y + (25 * (i + 1));
+				Triangle[0] = { Nowx, (Nowy - 7) };
+				Triangle[1] = { Nowx + 10,Nowy + 4 };
+				Triangle[2] = { Nowx - 10,Nowy + 4 };
+				Polygon(hDC, Triangle, 3);
+			}
+			for (int i = 0; i < 11; i++) {
+				Nowx = x + 300;
+				Nowy = y + (25 * (i + 1));
+				Triangle[0] = { Nowx, (Nowy - 7) };
+				Triangle[1] = { Nowx + 10,Nowy + 4 };
+				Triangle[2] = { Nowx - 10,Nowy + 4 };
+				Polygon(hDC, Triangle, 3);
+			}
+			SelectObject(hDC, hDefPen);
+			SelectObject(hDC, hDefBrush);
+			DeleteObject(hSelectPen);
+			DeleteObject(hSelectBrush);
+		}
+
+		else if (check == 2) {
+			hSelectPen = CreatePen(PS_SOLID, 1, RGB(0, 255, 0));
+			hSelectBrush = CreateSolidBrush(RGB(0, 255, 0));
+			hDefPen = (HPEN)SelectObject(hDC, hSelectPen);
+			hDefBrush = (HBRUSH)SelectObject(hDC, hSelectBrush);
+			for (int i = 0; i < 11; i++) {
+				Nowx = x + (25 * (i + 1));
+				Nowy = y;
+				Rectangle(hDC, Nowx - 10, Nowy - 10, Nowx + 10, Nowy + 10);
+			}
+			for (int i = 0; i < 11; i++) {
+				Nowx = x + (25 * (i + 1));
+				Nowy = y + 300;
+				Rectangle(hDC, Nowx - 10, Nowy - 10, Nowx + 10, Nowy + 10);
+			}
+			for (int i = 0; i < 11; i++) {
+				Nowx = x;
+				Nowy = y + (25 * (i + 1));
+				Rectangle(hDC, Nowx - 10, Nowy - 10, Nowx + 10, Nowy + 10);
+			}
+			for (int i = 0; i < 11; i++) {
+				Nowx = x + 300;
+				Nowy = y + (25 * (i + 1));
+				Rectangle(hDC, Nowx - 10, Nowy - 10, Nowx + 10, Nowy + 10);
+			}
+			SelectObject(hDC, hDefPen);
+			SelectObject(hDC, hDefBrush);
+			DeleteObject(hSelectPen);
+			DeleteObject(hSelectBrush);
+		}
+		else if (check == 3) {
+			hSelectPen = CreatePen(PS_SOLID, 5, RGB(0, 0, 255));
+			hDefPen = (HPEN)SelectObject(hDC, hSelectPen);
+			for (int i = 0; i < 11; i++) {
+				Nowx = x + (25 * (i + 1));
+				Nowy = y;
+				MoveToEx(hDC, Nowx-5, Nowy, NULL);
+				LineTo(hDC, Nowx+5, Nowy);
+			}
+			for (int i = 0; i < 11; i++) {
+				Nowx = x + (25 * (i + 1));
+				Nowy = y + 300;
+				MoveToEx(hDC, Nowx - 5, Nowy, NULL);
+				LineTo(hDC, Nowx + 5, Nowy);
+			}
+			for (int i = 0; i < 11; i++) {
+				Nowx = x;
+				Nowy = y + (25 * (i + 1));
+				MoveToEx(hDC, Nowx, Nowy-5, NULL);
+				LineTo(hDC, Nowx, Nowy+5);
+			}
+			for (int i = 0; i < 11; i++) {
+				Nowx = x + 300;
+				Nowy = y + (25 * (i + 1));
+				MoveToEx(hDC, Nowx, Nowy - 5, NULL);
+				LineTo(hDC, Nowx, Nowy + 5);
+			}
+			SelectObject(hDC, hDefPen);
+			DeleteObject(hSelectPen);
 		}
 		EndPaint(hWnd, &ps);
-		break;
+	}
+	break;
 	case WM_DESTROY:
 		PostQuitMessage(0);
 		return 0;

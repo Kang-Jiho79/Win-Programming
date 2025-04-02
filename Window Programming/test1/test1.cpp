@@ -10,20 +10,8 @@ LPCTSTR IpszWindowName = L"Window Programming Lab";
 
 LRESULT CALLBACK WndProc(HWND hWnd, UINT iMessage, WPARAM wParam, LPARAM lParam);
 
-TCHAR str[10][81] = { L"\0" };
-int count[10] = { 0 };
-int x[10] = { 400 }, y[10] = { 300 };
-int entercount = 0;
-int r[10], g[10], b[10];
-
 int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevlnstance, LPSTR lpszCmdParam, int nCMdShow)	// 메인함수 
 {
-	srand(time(NULL));
-	for (int i = 0; i < 10; i++) {
-		r[i] = rand() % 255;
-		g[i] = rand() % 255;
-		b[i] = rand() % 255;
-	}
 	HWND hWnd;
 	MSG Message;
 	WNDCLASSEX WndClass;	//윈도우 클래스
@@ -62,56 +50,53 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT iMessage, WPARAM wParam, LPARAM lParam)
 {
 	PAINTSTRUCT ps;
 	HDC hDC;
-
+	HPEN hDefPen, hSelectPen;
+	HBRUSH hDefBrush, hSelectBrush;
+	RECT Now;
+	POINT Triangle[3] = {};
+	GetClientRect(hWnd, &Now);
+	int check = 1;
+	int x = Now.right / 2, y = Now.bottom / 2;
+	int Nowx, Nowy;
 	switch (iMessage) {
 	
 	case WM_CHAR:
 	{
-		if (wParam == VK_RETURN) {
-			entercount++;
-			x[entercount] = x[entercount - 1] - 10;
-			y[entercount] = y[entercount - 1] + 20;
-		}
-		else if (count[entercount] <= 79) {
-			str[entercount][count[entercount]++] = wParam;
-		}
-		str[entercount][count[entercount]] = '\0';
-		InvalidateRect(hWnd, NULL, false);
+		
 	
 	}
-	case WM_KEYDOWN:
-	{
-		if (wParam == VK_F1) {
-			for (int i = 0; i < 10; i++) {
-				for (int j = 0; j < count[i]; j++)
-					str[i][j] = '\0';
-				count[i] = 0;
-				x[i] = 400;
-				y[i] = 300;
-				entercount = 0;
-				r[i] = rand() % 255;
-				g[i] = rand() % 255;
-				b[i] = rand() % 255;
-			}
-			InvalidateRect(hWnd, NULL, TRUE);
-		}
-		else if (wParam == VK_ESCAPE) {
-			PostQuitMessage(0);
-			return 0;
-		}
-	}
+	break;
 	case WM_PAINT:
+	{
 		hDC = BeginPaint(hWnd, &ps);
-		if (entercount == 0) {
-			SetTextColor(hDC, RGB(r[entercount], g[entercount], b[entercount]));
-			TextOut(hDC, x[entercount], y[entercount], str[entercount], _tcsclen(str[entercount]));
+		Rectangle(hDC, x, y, x + 300, y + 100);
+		if (check == 1) {
+			hSelectPen = CreatePen(PS_SOLID, 1, RGB(255, 0, 0));
+			hSelectBrush = CreateSolidBrush(RGB(255, 0, 0));
+			hDefPen = (HPEN)SelectObject(hDC, hSelectPen);
+			hDefBrush = (HBRUSH)SelectObject(hDC, hSelectBrush);
+			for (int i = 0; i < 10; i++) {
+				Nowx = x + (25 * (i + 1));
+				Nowy = y;
+				Triangle[0] = { Nowx, (Nowy + 6) };
+				Triangle[1] = { Nowx + 10,Nowy - 3 };
+				Triangle[2] = { Nowx - 10,Nowy - 3 };
+				Polygon(hDC, Triangle, 3);
+			}
+			SelectObject(hDC, hDefPen);
+			SelectObject(hDC, hDefBrush);
+			DeleteObject(hSelectPen);
+			DeleteObject(hSelectBrush);
 		}
-		else {
-			SetTextColor(hDC, RGB(r[entercount], g[entercount], b[entercount]));
-			TextOut(hDC, x[entercount], y[entercount], str[entercount], _tcsclen(str[entercount]));
-			TextOut(hDC, x[entercount], y[entercount]-(entercount*40), str[entercount], _tcsclen(str[entercount]));
+
+		else if (check == 2) {
+
+		}
+		else if (check == 3) {
+
 		}
 		EndPaint(hWnd, &ps);
+	}
 		break;
 	case WM_DESTROY:
 		PostQuitMessage(0);
