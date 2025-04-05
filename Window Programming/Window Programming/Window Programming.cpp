@@ -3,6 +3,10 @@
 #include <tchar.h>
 #include <stdlib.h>
 #include <time.h>
+#include <sstream>
+#include <string>
+#include <iostream>
+#include <cwctype>
 
 HINSTANCE g_hInst;
 LPCTSTR IpszClass = L"Window Class Name";
@@ -47,30 +51,32 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevlnstance, LPSTR lpszCmdPa
 #define max_char 30
 
 TCHAR str[max_line][max_char+1] = {L"\0"};		// 전체 저장
-TCHAR strout[max_line][max_char + 5] = { L"\0" };	// 출력할것
+std::wstring strout[max_line] = { L"\0" };	// 출력할것
 TCHAR CaretPoint[max_char + 1] = L"\0";		// 현재 캐럿위치
-int count[max_line] = { 0 };				// 줄마다 글자수
+int count[max_line] = { 0 };			// 줄마다 글자수
 int entercount = 0;					// 현재 몇번째 줄인지
 int present = 0;					// 현재 몇번째 글자인지
 bool insertcheck = false;			// insert 확인
 int uppercheck = 0;					// F1 확인
 bool starcheck = false;				// F2 확인
 bool parenthesischeck = false;		// F3 확인
-bool blankdeletecheck = false;		// F4 확인
+bool spacedeletecheck = false;		// F4 확인
 bool randomcharcheck = false;		// F5 확인
 
+
+
 // 캐럿 위치 맨앞으로(home)
-void CarePointReset()
+void CaretPointReset()
 {
 	for (int i = 0; i < lstrlen(CaretPoint); i++)
 		CaretPoint[i] = '\0';
 	present = 0;
-}	   
+}
 
 // 캐럿 위치 세팅
-void CarePointSet(int setenter, int setcount)
+void CaretPointSet(int setenter, int setcount)
 {
-	CarePointReset();
+	CaretPointReset();
 	for (int i = 0; i < setcount; i++) {
 		CaretPoint[i] = str[setenter][i];
 	}
@@ -78,30 +84,151 @@ void CarePointSet(int setenter, int setcount)
 	present = setcount;
 }   
 
+// 개행 (enter)
+void enterkey()
+{
+	if (entercount == 9) {
+		entercount = 0;
+	}
+	else {
+		entercount++;
+	}
+	CaretPointReset();
+}
+
 // 문자열 저장 (insert, F1)
 void insertword(TCHAR ch)
 {
-	if (uppercheck == 1)
+	TCHAR c;
+	if (uppercheck == 1) {
 		if (isalpha(ch))
-			toupper(ch);
-	if (uppercheck == 2)
+			c = towupper(ch);
+	}
+	else if (uppercheck == 2) {
 		if (isalpha(ch))
-			tolower(ch);
+			c = towlower(ch);
+	}
+	else
+		c = ch;
 	if (insertcheck && count[entercount] < max_char) {
 		for (int i = count[entercount]; i > present; i--)
 			str[entercount][i + 1] = str[entercount][i];
+		str[entercount][present] = c;
+		CaretPoint[present++] = c;
+		count[entercount]++;
 	}
-	else {
-
+	else if (count[entercount] < max_char){
+		str[entercount][present] = c;
+		CaretPoint[present++] = c;
+		count[entercount]++;
+	}
+	else if (!insertcheck) {
+		enterkey();
+		str[entercount][present] = c;
+		CaretPoint[present++] = c;
+		count[entercount]++;
 	}
 }
-// 지우기 (backspace)
 
-// 개행 (enter)
+// 지우기 (backspace)
+void backspacekey()
+{
+	if (present > 0) {
+		for (int i = present - 1; i < count[entercount]; i++) {
+			str[entercount][i] = str[entercount][i + 1];
+		}
+		count[entercount]--;
+		CaretPoint[present--] = '\0';
+	}
+	else if (present == 0 && entercount > 0) {
+		entercount--;
+		CaretPointSet(entercount, count[entercount]);
+	}
+}
+
+// 대문자 변환
+std::wstring toUpper(std::wstring& word) {
+	std::wstring result;
+	for (TCHAR c : word) {
+		result += std::towupper(c);
+	}
+	return result;
+}
+// .구분
+std::wstring strdot(std::wstring& word, std::wstring& dot) {
+	std::wstring clean;
+	dot.clear();
+	for (TCHAR c : word) {
+		if (iswalnum(c)) {
+			clean += c;
+		}
+		else {
+			dot += c;
+		}
+	}
+	return clean;
+}
 
 // 문자열 출력 (F2, F3, F4, F5)
+void strset()
+{
+
+	for (int i = 0; i < max_line; i++) {
+		strout[i].clear();
+		if (starcheck) {
+			bool numbercheck = false;
+			for (int j = 0; j < count[i]; j++)
+				if (iswdigit(str[i][j]))
+					numbercheck = true;
+			if (numbercheck)
+				strout[i] += std::wstring(L"****") + str[i];
+			else
+				strout[i] += str[i];
+		}
+		else if (parenthesischeck) {
+			std::wstringstream ss(str[i]);
+			std::wstring w;
+			while (ss >> w) {
+				std::wstring dot;
+				std::wstring word = strdot(w, dot);
+				strout[i] += L"(" + toUpper(word) + L")" + dot;
+			}
+		}
+		else if (spacedeletecheck) {
+			for (int j = 0; j < count[i]; j++)
+				if (!iswspace(str[i][j]))
+					strout[i] += str[i][j];
+		}
+		else if (randomcharcheck) {
+			std::srand(std::time(0));
+			TCHAR ch = 'a' + std::rand() % 26;
+			for (int j = 0; j < count[i]; j++)
+				if (str[i][j] == ch || str[i][j] == towupper(ch))
+					strout[i] += '@';
+				else
+					strout[i] += str[i][j];
+		}
+		else {
+			for (int j = 0; j < count[i]; j++)
+				strout[i] += str[i][j];
+		}
+	}
+}
+
 
 // 전체 초기화 (esc)
+void esckey()
+{
+	for (int i = 0; i < 10; i++) {
+		for (int j = 0; j < 31; j++) {
+			str[i][j] = '\0';
+			CaretPoint[j] = '\0';
+		}
+		count[i] = 0;
+	}
+	entercount = 0;
+	present = 0;
+}
 
 // 공백 5개 삽입 (tab)
 void tabkey()
@@ -119,7 +246,7 @@ void tabkey()
 			str[entercount][i] = ' ';
 		}
 		entercount++;
-		CarePointSet(entercount, 0);
+		CaretPointSet(entercount, 0);
 	}
 }
 
@@ -128,12 +255,13 @@ void endkey()
 {
 	if (count[entercount] == 30) {
 		entercount++;
-		CarePointReset();
+		CaretPointReset();
 	}
 	else {
-		CarePointSet(entercount, count[entercount]);
+		CaretPointSet(entercount, count[entercount]);
 	}
 }
+
 // 단어 지우기 (delete)
 void DeleteWord()
 {
@@ -156,7 +284,7 @@ void DeleteWord()
 			int s = Start;
 			for (int i = End; i < count[entercount]; i++)
 				str[entercount][s++] = str[entercount][i];
-			StrSet(entercount, present);
+			CaretPointSet(entercount, present);
 			count[entercount] = count[entercount] - (End - Start);
 
 			for (int i = count[entercount]; i < 30; i++)
@@ -167,21 +295,147 @@ void DeleteWord()
 				str[entercount][i] = '\0';
 			}
 			count[entercount] = Start;
-			StrSet(entercount, Start - 1);
+			CaretPointSet(entercount, Start - 1);
 		}
 	}
 }
+
 // 상하좌우로 이동
+void CaretPointmove(TCHAR ch)
+{
+	if (ch == VK_LEFT) {
+		if (present > 0)
+			CaretPoint[present--] = '\0';
+	}
+	else if (ch == VK_RIGHT){
+		if (present < count[entercount])
+			CaretPoint[present++] = str[entercount][present];
+	}
+	else if (ch == VK_UP) {
+		if (entercount > 0) {
+			entercount--;
+			if (present > count[entercount]) 
+				CaretPointSet(entercount, count[entercount]);
+			else
+				CaretPointSet(entercount, present);
+		}
+	}
+	else {
+		if (entercount < 9) {
+			entercount++;
+			if (present > count[entercount]) 
+				CaretPointSet(entercount, count[entercount]);
+			else
+				CaretPointSet(entercount, present);
+		}
+	}
+}
 
-// 위로 3칸이동 (Pgup)
-
-// 밑으로 3칸이동 (Pgdn)
+// 위아래로 3칸이동 (Pgup / Pgdn)
+void threetimemove(TCHAR ch) 
+{
+	if (ch == VK_PRIOR) {
+		if (entercount > 2) {
+			if (present > count[entercount - 3]) {
+				entercount = entercount - 3;
+				CaretPointSet(entercount, count[entercount]);
+			}
+			else {
+				entercount = entercount - 3;
+				CaretPointSet(entercount, present);
+			}
+		}
+		else {
+			if (present > count[0]) {
+				entercount = 0;
+				CaretPointSet(entercount, count[entercount]);
+			}
+			else {
+				entercount = 0;
+				CaretPointSet(entercount, present);
+			}
+		}
+	}
+	else {
+		if (entercount < 7) {
+			if (present > count[entercount + 3]) {
+				entercount = entercount + 3;
+				CaretPointSet(entercount, count[entercount]);
+			}
+			else {
+				entercount = entercount + 3;
+				CaretPointSet(entercount, present);
+			}
+		}
+		else {
+			if (present > count[9]) {
+				entercount = 9;
+				CaretPointSet(entercount, count[entercount]);
+			}
+			else {
+				entercount = 9;
+				CaretPointSet(entercount, present);
+			}
+		}
+	}
+}
 
 // 줄 쉬프트 (F6)
+void F6key()
+{
+	TCHAR temp[31];
+	int counttemp = count[max_line - 1];
+	for (int i = 0; i < count[max_line - 1]; i++)
+		temp[i] = str[max_line-1][i];
+	for (int i = max_line - 1; i > 0; i--) {
+		for (int j = 0; j < 30; j++)
+			str[i][j] = str[i - 1][j];
+		count[i] = count[i - 1];
+	}
+	for (int i = 0; i < 30; i < i++)
+		str[0][i] = temp[i];
+	count[0] = counttemp;
+	CaretPointSet(entercount, present);
+}
+
 
 // 다음 문자 (+)
+void charplus() 
+{
+	for (int i = 0; i < max_line; i++) {
+		for (int j = 0; j < max_char; j++) {
+			if (str[i][j] >= 'a' && str[i][j] <= 'z') {
+				str[i][j] = (str[i][j] == 'z') ? 'a' : str[i][j] + 1;
+			}
+			else if (str[i][j] >= 'A' && str[i][j] <= 'Z') {
+				str[i][j] = (str[i][j] == 'Z') ? 'A' : str[i][j] + 1;
+			}
+			else if (str[i][j] >= L'0' && str[i][j] <= L'9') {
+				str[i][j] = (str[i][j] == '9') ? '0' : str[i][j] + 1;
+			}
+		}
+	}
+}
+
 
 // 이전 문자 (-)
+void charminus()
+{
+	for (int i = 0; i < max_line; i++) {
+		for (int j = 0; j < max_char; j++) {
+			if (str[i][j] >= 'a' && str[i][j] <= 'z') {
+				str[i][j] = (str[i][j] == 'a') ? 'z' : str[i][j] - 1;
+			}
+			else if (str[i][j] >= 'A' && str[i][j] <= 'Z') {
+				str[i][j] = (str[i][j] == 'A') ? 'Z' : str[i][j] - 1;
+			}
+			else if (str[i][j] >= L'0' && str[i][j] <= L'9') {
+				str[i][j] = (str[i][j] == '0') ? '9' : str[i][j] - 1;
+			}
+		}
+	}
+}
+
 
 LRESULT CALLBACK WndProc(HWND hWnd, UINT iMessage, WPARAM wParam, LPARAM lParam)
 {
@@ -197,218 +451,85 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT iMessage, WPARAM wParam, LPARAM lParam)
 	break;
 	case WM_KEYDOWN:
 	{
-		if (wParam == VK_ESCAPE) {		//초기화
-
-		}
-		else if (wParam == VK_TAB) {		//공백 5개 넣기 30자 넘어가면 개행
-			tabkey();
-		}
-		else if (wParam == VK_HOME) {	//줄 맨앞으로 이동
-			CarePointReset();
-		}
-		else if (wParam == VK_END) {	//줄 맨뒤로 이동 30자가 다 차있으면 다음줄로
-			endkey();
-		}
-		else if (wParam == VK_INSERT) {	//사이에 문자 추가 다시누르면 덮어쓰기
-			if (insertcheck)
-				insertcheck = false;
-			else
-				insertcheck = true;
-		}
-		else if (wParam == VK_DELETE) { //현재 단어를 지운다
-			DeleteWord();
-		}
-		else if (wParam == VK_LEFT) {	//캐럿 위치이동
-			if (present > 0)
-				CaretPoint[present--] = '\0';
-		}
-		else if (wParam == VK_RIGHT) {
-			if (present < count[entercount])
-				CaretPoint[present++] = str[entercount][present];
-		}
-		else if (wParam == VK_UP) {
-			if (entercount > 0) {
-				if (present > count[entercount - 1]) {
-					StrSet(str, CaretPoint, entercount - 1, count[entercount - 1]);
-					entercount--;
-				}
+		if (!starcheck && !parenthesischeck && !spacedeletecheck && !randomcharcheck) {
+			if (wParam == VK_ESCAPE) {		//초기화
+				esckey();
+			}
+			else if (wParam == VK_TAB) {		//공백 5개 넣기 30자 넘어가면 개행
+				tabkey();
+			}
+			else if (wParam == VK_HOME) {	//줄 맨앞으로 이동
+				CaretPointReset();
+			}
+			else if (wParam == VK_END) {	//줄 맨뒤로 이동 30자가 다 차있으면 다음줄로
+				endkey();
+			}
+			else if (wParam == VK_INSERT) {	//사이에 문자 추가 다시누르면 덮어쓰기
+				insertcheck = !insertcheck;
+			}
+			else if (wParam == VK_DELETE) { //현재 단어를 지운다
+				DeleteWord();
+			}
+			else if (wParam == VK_LEFT || wParam == VK_RIGHT || wParam == VK_UP || wParam == VK_DOWN) {	//캐럿 위치이동
+				CaretPointmove(wParam);
+			}
+			else if (wParam == VK_PRIOR || wParam == VK_NEXT) {	//캐럿의 위치를 위/아래로 3줄 이동
+				threetimemove(wParam);
+			}
+			else if (wParam == VK_F1) { // 입력하는 문자가 대문자로 출력된다 다시 누르면 소문자로 출력된다
+				if (uppercheck == 2)
+					uppercheck = 0;
 				else
-					StrSet(str, CaretPoint, --entercount, present);
+					uppercheck++;
+			}
+			else if (wParam == VK_F6) { // 줄의 순서가 한줄씩 앞으로 이동한다.
+				F6key();
+			}
+			else if (wParam == VK_BACK) {
+				backspacekey();
+			}
+			else if (wParam == VK_RETURN) {
+				enterkey();
 			}
 		}
-		else if (wParam == VK_DOWN) {
-			if (entercount < 9)
-				if (present > count[entercount + 1]) {
-					StrSet(str, CaretPoint, entercount + 1, count[entercount + 1]);
-					entercount++;
-				}
-				else
-					StrSet(str, CaretPoint, ++entercount, present);
+		if (wParam == VK_F2 && !parenthesischeck && !spacedeletecheck && !randomcharcheck) { //숫자가 포함되어 있는 줄의 맨앞에 4칸의 *을 넣는다 다시 누르면 없어진다
+			starcheck = !starcheck;
 		}
-		else if (wParam == VK_PRIOR) {	//캐럿의 위치를 위/아래로 3줄 이동
-
+		else if (wParam == VK_F3 && !starcheck && !spacedeletecheck && !randomcharcheck) { //공백으로 구분되는 단어를 괄호가 둘러싸고 대문자로 출력한다 다시누르면 돌아온다
+			parenthesischeck = !parenthesischeck;
 		}
-		else if (wParam == VK_NEXT) {
-
+		else if (wParam == VK_F4 && !starcheck && !parenthesischeck && !randomcharcheck) { //공백문자를 삭제한다 다시 누르면 공백이 생긴다.
+			spacedeletecheck = !spacedeletecheck;
 		}
-		else if (wParam == VK_F1) { // 입력하는 문자가 대문자로 출력된다 다시 누르면 소문자로 출력된다
-
-		}
-		else if (wParam == VK_F2) { //숫자가 포함되어 있는 줄의 맨앞에 4칸의 *을 넣는다 다시 누르면 없어진다
-
-		}
-		else if (wParam == VK_F3) { //공백으로 구분되는 단어를 괄호가 둘러싸고 대문자로 출력한다 다시누르면 돌아온다
-
-		}
-		else if (wParam == VK_F4) { //공백문자를 삭제한다 다시 누르면 공백이 생긴다.
-
-		}
-		else if (wParam == VK_F5) {	// 랜덤한 한 문자를 선택하여 @바꾸어 출력한다
-
-		}
-		else if (wParam == VK_F6) { // 줄의 순서가 한줄씩 앞으로 이동한다.
-
-		}
-		else if (wParam == VK_BACK) {
-			if (present == 0) {
-				if (entercount > 0) {
-					StrSet(str, CaretPoint, entercount - 1, count[entercount - 1]);
-					while (str[entercount][0] != '\0' && count[entercount - 1] < 30) {
-						str[entercount - 1][count[entercount - 1]++] = str[entercount][0];
-						for (int i = 0; i < count[entercount]; i++)
-							str[entercount][i] = str[entercount][i + 1];
-						count[entercount]--;
-					}
-					entercount--;
-				}
-			}
-			else {
-				for (int i = present - 1; i < count[entercount] + 1; i++) {
-					str[entercount][i] = str[entercount][i + 1];
-				}
-				count[entercount]--;
-				CaretPoint[present--] = '\0';
-			}
-		}
-		else if (wParam == VK_RETURN) {
-			if (entercount == 9) {
-				entercount = 0;
-			}
-			else {
-				entercount++;
-			}
-			StrReset(CaretPoint);
-		}
-		else {
-
+		else if (wParam == VK_F5 && !starcheck && !parenthesischeck && !spacedeletecheck) {	// 랜덤한 한 문자를 선택하여 @바꾸어 출력한다
+			randomcharcheck = !randomcharcheck;
 		}
 		InvalidateRect(hWnd, NULL, TRUE);
 	}
 	break;
+
 	case WM_CHAR:
 	{
-		if (wParam == VK_BACK) {
-			if (present == 0) {
-				if (entercount > 0) {
-					StrSet(str, CaretPoint, entercount - 1, count[entercount - 1]);
-					while (str[entercount][0] != '\0' && count[entercount - 1] < 30) {
-						str[entercount - 1][count[entercount - 1]++] = str[entercount][0];
-						for (int i = 0; i < count[entercount]; i++)
-							str[entercount][i] = str[entercount][i + 1];
-						count[entercount]--;
-					}
-					entercount--;
-				}
+		if (!starcheck && !parenthesischeck && !spacedeletecheck && !randomcharcheck) {
+			if (wParam == '+') {
+				charplus();
 			}
-			else {
-				for (int i = present - 1; i < count[entercount] + 1; i++) {
-					str[entercount][i] = str[entercount][i + 1];
-				}
-				count[entercount]--;
-				CaretPoint[present--] = '\0';
+			else if (wParam == '-') {
+				charminus();
+			}
+			else if (wParam >= 0x20 && wParam <= 0x7E) {
+				insertword(wParam);
 			}
 		}
-		
-		else if (wParam != VK_TAB) {
-			if (insertcheck) {
-				if (count[entercount] <= 29) {
-					if (present < count[entercount]) {
-						for (int i = count[entercount]; i > present - 1; i--) {
-							str[entercount][i + 1] = str[entercount][i];
-						}
-						str[entercount][present] = wParam;
-						CaretPoint[present++] = wParam;
-						count[entercount]++;
-					}
-					else {
-						str[entercount][count[entercount]++] = wParam;
-						CaretPoint[present++] = wParam;
-					}
-
-				}
-				else if (count[entercount] == 30) {
-					if (entercount == 9) {
-						entercount = 0;
-					}
-					else {
-						entercount++;
-					}
-					StrReset(CaretPoint);
-					if (present < count[entercount]) {
-						for (int i = count[entercount]; i > present; i--) {
-							str[entercount][i + 1] = str[entercount][i];
-						}
-						str[entercount][present] = wParam;
-						CaretPoint[present++] = wParam;
-						count[entercount]++;
-					}
-					else {
-						str[entercount][count[entercount]++] = wParam;
-						CaretPoint[present++] = wParam;
-					}
-				}
-			}
-			else {
-				if (count[entercount] <= 29) {
-					if (present < count[entercount]) {
-						str[entercount][present] = wParam;
-						CaretPoint[present++] = wParam;
-						count[entercount]++;
-					}
-					else {
-						str[entercount][count[entercount]++] = wParam;
-						CaretPoint[present++] = wParam;
-					}
-				}
-				else if (count[entercount] == 30) {
-					if (entercount == 9) {
-						entercount = 0;
-					}
-					else {
-						entercount++;
-					}
-					StrReset(CaretPoint);
-					if (present < count[entercount]) {
-						str[entercount][present] = wParam;
-						CaretPoint[present++] = wParam;
-						count[entercount]++;
-					}
-					else {
-						str[entercount][count[entercount]++] = wParam;
-						CaretPoint[present++] = wParam;
-					}
-				}
-			}
-
-			InvalidateRect(hWnd, NULL, TRUE);
-		}
+		InvalidateRect(hWnd, NULL, TRUE);
 	}
 	break;
 	case WM_PAINT:
 		hDC = BeginPaint(hWnd, &ps);
+		strset();
 		GetTextExtentPoint32(hDC, CaretPoint, present, &size);
 		for (int i = 0; i < 10; i++)
-			TextOut(hDC, 0, 20 * i, str[i], _tcsclen(str[i]));
+			TextOut(hDC, 0, 20 * i, strout[i].c_str(), strout[i].length());
 		SetCaretPos(size.cx, 20 * entercount);
 		EndPaint(hWnd, &ps);
 		break;
