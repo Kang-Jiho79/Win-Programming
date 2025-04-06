@@ -1,284 +1,19 @@
-﻿#include <windows.h>
+﻿//실습 12번
+#define _CRT_SECURE_NO_WARNINGS
+#include <windows.h>
 #include <tchar.h>
 #include <stdlib.h>
-#include <ctime>
-#include <vector>
+#include <time.h>
+#include <math.h>
 
-#define MAX_LINES 10
-#define MAX_CHARS_PER_LINE 30
+#define tablecount 30
+#define cellsize 30
 
 HINSTANCE g_hInst;
 LPCTSTR IpszClass = L"Window Class Name";
-LPCTSTR IpszWindowName = L"Memo Notepad";
+LPCTSTR IpszWindowName = L"Window Programming Lab";
 
 LRESULT CALLBACK WndProc(HWND hWnd, UINT iMessage, WPARAM wParam, LPARAM lParam);
-
-// 전역 변수들
-TCHAR str[MAX_LINES][MAX_CHARS_PER_LINE + 1] = { L"\0" }; // 10줄, 각 줄에 30자까지
-int currentLine = 0; // 현재 입력 중인 줄
-int currentPos = 0;  // 현재 입력 중인 줄의 위치 (0~29)
-bool overwriteMode = true; // 덮어쓰기 모드, 기본값 true (덮어쓰기)
-bool isUpperCase = false; // 대소문자 토글 상태
-std::vector<bool> hasNumber(MAX_LINES, false); // 각 줄에 숫자가 포함되었는지 여부
-std::vector<bool> spaceRemoved(MAX_LINES, false); // 공백 제거 상태
-std::vector<bool> replacedWithAt(MAX_LINES, false); // '@'로 교체된 문자의 줄
-std::vector<bool> uppercasedWords(MAX_LINES, false); // 괄호로 감싼 대문자 상태
-
-// 캐럿 초기화 함수
-void ResetCaret() {
-	currentPos = 0;
-}
-
-// 문자 삽입 함수
-void InsertChar(TCHAR ch) {
-	if (currentPos < MAX_CHARS_PER_LINE) {
-		str[currentLine][currentPos] = ch;
-		currentPos++;
-	}
-	else if (currentLine < MAX_LINES - 1) {
-		// 한 줄이 가득 찬 경우, 다음 줄로 이동
-		currentLine++;
-		currentPos = 0;
-		str[currentLine][currentPos] = ch;
-		currentPos++;
-	}
-	else {
-		// 마지막 줄까지 다 차면 첫 번째 줄로 돌아가서 덮어쓰기
-		currentLine = 0;
-		currentPos = 0;
-		str[currentLine][currentPos] = ch;
-		currentPos++;
-	}
-}
-
-// 백스페이스 처리 함수
-void HandleBackspace() {
-	if (currentPos > 0) {
-		// 현재 줄에서 문자를 삭제
-		str[currentLine][--currentPos] = L'\0';
-	}
-	else if (currentLine > 0) {
-		// 첫 줄이 아니면, 이전 줄로 캐럿 이동
-		currentLine--;
-		currentPos = MAX_CHARS_PER_LINE;
-		str[currentLine][currentPos] = L'\0';
-	}
-}
-
-// 엔터키 처리 함수
-void HandleEnter() {
-	if (currentLine < MAX_LINES - 1) {
-		currentLine++;
-		currentPos = 0;
-	}
-	else {
-		// 마지막 줄까지 입력이 끝나면 첫 줄로 돌아가서 덮어쓰기
-		currentLine = 0;
-		currentPos = 0;
-	}
-	ResetCaret();
-}
-
-// Esc 키 처리 (화면 지우기)
-void HandleEsc() {
-	memset(str, 0, sizeof(str)); // 메모장 내용 초기화
-	currentLine = 0;
-	currentPos = 0;
-}
-
-// Tab 키 처리 (5개의 스페이스 삽입)
-void HandleTab() {
-	for (int i = 0; i < 5; i++) {
-		InsertChar(L' ');
-	}
-}
-
-// Home 키 처리 (줄의 맨 앞으로 이동)
-void HandleHome() {
-	currentPos = 0;
-}
-
-// End 키 처리 (줄의 맨 뒤로 이동)
-void HandleEnd() {
-	currentPos = MAX_CHARS_PER_LINE;
-}
-
-// Insert 키 처리 (삽입 모드와 덮어쓰기 모드 토글)
-void HandleInsert() {
-	overwriteMode = !overwriteMode; // 덮어쓰기 모드 토글
-}
-
-// Del 키 처리 (현재 단어 삭제)
-void HandleDel() {
-	// 현재 캐럿 위치에서 단어 삭제
-	while (currentPos < MAX_CHARS_PER_LINE && str[currentLine][currentPos] != L' ' && str[currentLine][currentPos] != L'\0') {
-		str[currentLine][currentPos++] = L'\0';
-	}
-}
-
-// 방향키 처리
-void HandleArrowKey(int direction) {
-	if (direction == VK_LEFT && currentPos > 0) {
-		// 왼쪽 화살표
-		currentPos--;
-	}
-	else if (direction == VK_RIGHT && currentPos < MAX_CHARS_PER_LINE && str[currentLine][currentPos] != L'\0') {
-		// 오른쪽 화살표
-		currentPos++;
-	}
-	else if (direction == VK_UP && currentLine > 0) {
-		// 위쪽 화살표
-		currentLine--;
-	}
-	else if (direction == VK_DOWN && currentLine < MAX_LINES - 1) {
-		// 아래쪽 화살표
-		currentLine++;
-	}
-}
-
-// 페이지업/페이지다운 처리
-void HandlePageUpDown(int direction) {
-	if (direction == VK_PRIOR && currentLine > 2) {
-		currentLine -= 3;
-	}
-	else if (direction == VK_NEXT && currentLine < MAX_LINES - 3) {
-		currentLine += 3;
-	}
-}
-
-// F1 키: 대문자/소문자 토글
-void HandleF1() {
-	isUpperCase = !isUpperCase;
-}
-
-// F2 키: 숫자가 포함된 줄에 '****' 추가/삭제
-void HandleF2() {
-	bool hasNum = false;
-	for (int i = 0; i < MAX_CHARS_PER_LINE; i++) {
-		if (str[currentLine][i] >= L'0' && str[currentLine][i] <= L'9') {
-			hasNum = true;
-			break;
-		}
-	}
-	if (hasNum) {
-		if (str[currentLine][0] != L'*') {
-			for (int i = MAX_CHARS_PER_LINE - 1; i > 3; i--) {
-				str[currentLine][i] = str[currentLine][i - 4];
-			}
-			str[currentLine][0] = L'*';
-			str[currentLine][1] = L'*';
-			str[currentLine][2] = L'*';
-			str[currentLine][3] = L'*';
-		}
-	}
-	else {
-		for (int i = 0; i < 4; i++) {
-			str[currentLine][i] = L'\0';
-		}
-		for (int i = 4; i < MAX_CHARS_PER_LINE; i++) {
-			if (str[currentLine][i] == L'*') {
-				str[currentLine][i] = L'\0';
-			}
-		}
-	}
-}
-
-// F3 키: 괄호로 감싸고 대문자로 출력
-void HandleF3() {
-	if (uppercasedWords[currentLine]) {
-		// 괄호 제거 후 원래대로 복구
-		uppercasedWords[currentLine] = false;
-		// 원래 단어로 복원하는 코드 작성 필요
-	}
-	else {
-		// 괄호 추가 및 대문자화
-		uppercasedWords[currentLine] = true;
-		for (int i = 0; i < MAX_CHARS_PER_LINE; i++) {
-			if (str[currentLine][i] != L' ') {
-				str[currentLine][i] = towupper(str[currentLine][i]);
-			}
-		}
-	}
-}
-
-// F4 키: 공백 문자 삭제/복구
-void HandleF4() {
-	if (spaceRemoved[currentLine]) {
-		// 공백 복구
-		spaceRemoved[currentLine] = false;
-	}
-	else {
-		// 공백 삭제
-		for (int i = 0; i < MAX_CHARS_PER_LINE; i++) {
-			if (str[currentLine][i] == L' ') {
-				str[currentLine][i] = L'\0';
-			}
-		}
-		spaceRemoved[currentLine] = true;
-	}
-}
-
-// F5 키: 랜덤 문자 @로 바꾸기/복구
-void HandleF5() {
-	srand(time(NULL));
-	int index = rand() % MAX_CHARS_PER_LINE;
-	replacedWithAt[currentLine] = !replacedWithAt[currentLine];
-	if (replacedWithAt[currentLine]) {
-		str[currentLine][index] = L'@';
-	}
-	else {
-		str[currentLine][index] = L'\0'; // 원래 문자로 복구
-	}
-}
-
-// F6 키: 줄 순서 이동
-void HandleF6() {
-	if (currentLine > 0) {
-		// 현재 줄의 데이터를 이전 줄로 이동
-		std::swap(str[currentLine], str[currentLine - 1]);
-		currentLine--;
-	}
-	else if (currentLine == 0 && MAX_LINES > 1) {
-		// 첫 번째 줄일 때는 마지막 줄로 순환
-		std::swap(str[currentLine], str[MAX_LINES - 1]);
-	}
-}
-
-// + 키: 알파벳 및 숫자 모두 다음 문자로 변경
-void HandlePlus() {
-	for (int i = 0; i < MAX_LINES; i++) {
-		for (int j = 0; j < MAX_CHARS_PER_LINE; j++) {
-			if (str[i][j] >= L'a' && str[i][j] <= L'z') {
-				str[i][j] = (str[i][j] == L'z') ? L'a' : str[i][j] + 1;
-			}
-			else if (str[i][j] >= L'A' && str[i][j] <= L'Z') {
-				str[i][j] = (str[i][j] == L'Z') ? L'A' : str[i][j] + 1;
-			}
-			else if (str[i][j] >= L'0' && str[i][j] <= L'9') {
-				str[i][j] = (str[i][j] == L'9') ? L'0' : str[i][j] + 1;
-			}
-		}
-	}
-}
-
-// - 키: 알파벳 및 숫자 모두 이전 문자로 변경
-void HandleMinus() {
-	for (int i = 0; i < MAX_LINES; i++) {
-		for (int j = 0; j < MAX_CHARS_PER_LINE; j++) {
-			if (str[i][j] >= L'a' && str[i][j] <= L'z') {
-				str[i][j] = (str[i][j] == L'a') ? L'z' : str[i][j] - 1;
-			}
-			else if (str[i][j] >= L'A' && str[i][j] <= L'Z') {
-				str[i][j] = (str[i][j] == L'A') ? L'Z' : str[i][j] - 1;
-			}
-			else if (str[i][j] >= L'0' && str[i][j] <= L'9') {
-				str[i][j] = (str[i][j] == L'0') ? L'9' : str[i][j] - 1;
-			}
-		}
-	}
-}
-
-
 
 int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevlnstance, LPSTR lpszCmdParam, int nCMdShow)	// 메인함수 
 {
@@ -301,7 +36,7 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevlnstance, LPSTR lpszCmdPa
 	WndClass.hIconSm = LoadIcon(NULL, IDI_APPLICATION);		//작은 아이콘 (보통 hIcon과 같은걸 사용)
 	RegisterClassEx(&WndClass);
 
-	hWnd = CreateWindow(IpszClass, IpszWindowName, WS_OVERLAPPEDWINDOW, 0, 0, 800, 600, NULL, (HMENU)NULL, hInstance, NULL);	//윈도우 만들기 함수
+	hWnd = CreateWindow(IpszClass, IpszWindowName, WS_OVERLAPPEDWINDOW, 0, 0, 1100, 1100, NULL, (HMENU)NULL, hInstance, NULL);	//윈도우 만들기 함수
 
 	ShowWindow(hWnd, nCMdShow);	//	윈도우 띄우기
 	UpdateWindow(hWnd);		// 윈도우 업데이트
@@ -313,96 +48,330 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevlnstance, LPSTR lpszCmdPa
 	return Message.wParam;
 }
 
-LRESULT CALLBACK WndProc(HWND hWnd, UINT iMessage, WPARAM wParam, LPARAM lParam) {
-	PAINTSTRUCT ps;
-	HDC hDC;
-	SIZE size;
+struct Player {
+	int x, y;
+	COLORREF color;
+	int size; 
+	int shape;
+	int shapeTimer;
+};
 
-	switch (iMessage) {
-	case WM_CREATE:
-		CreateCaret(hWnd, NULL, 5, 15);
-		ShowCaret(hWnd);
+struct Cell {
+	int type; // 0: 일반, 1: 장애물, 2: 색상 변경, 3: 축소, 4: 확대, 5: 모양 변경, 6: 목표 지점
+	COLORREF color;
+};
+
+Player player[2];
+int presentplayer = 0;
+Cell table[tablecount][tablecount];
+int goalsize;
+int goalshape;
+COLORREF goalcolor;
+POINT goal;
+int ending = 2;
+
+COLORREF red = RGB(255, 0, 0);	//장애물 색
+COLORREF green = RGB(0, 255, 0); //축소 색
+COLORREF blue = RGB(0, 0, 255); //확대 색
+COLORREF black = RGB(0, 0, 0); //모양변경 색
+COLORREF colors[10];
+
+// 게임 기초 세팅
+void settinggame()
+{
+	srand((unsigned)time(0));
+	ending = 2;
+	for (int i = 0; i < tablecount; ++i) {
+		for (int j = 0; j < tablecount; ++j) {
+			table[i][j].type = 0;
+			table[i][j].color = RGB(255, 255, 255);
+		}
+	}
+	player[0] = { 0, 0, RGB(rand() % 256, rand() % 256, rand() % 256), cellsize/4, 0, 0 };
+	player[1] = { tablecount - 1, 0, RGB(rand() % 256, rand() % 256, rand() % 256), cellsize/4, 0, 0 };
+
+	for (int i = 0; i < 10; i++) {
+		colors[i] = RGB(rand() % 256, rand() % 256, rand() % 256);
+	}
+	goalcolor = colors[rand() % 10];
+	goalshape = rand() % 4 + 1;
+	goal = { tablecount / 2,tablecount - 1 };
+	table[goal.y][goal.x].type = 6;
+	goalsize = (rand() % 4 + 1) * cellsize/4;
+
+	for (int i = 0; i < 20; ++i) {
+		int x = rand() % tablecount;
+		int y = rand() % tablecount;
+		if (table[y][x].type == 0) {
+			table[y][x].type = 1;
+			table[y][x].color = red;
+		}
+		else
+			i--;
+	}
+	for (int i = 0; i < 20; ++i) {
+		int x = rand() % tablecount;
+		int y = rand() % tablecount;
+		if (table[y][x].type == 0) {
+			table[y][x].type = 2;
+			table[y][x].color = colors[rand() % 10];
+		}
+		else
+			i--;
+	}
+	for (int i = 0; i < 20; ++i) {
+		int x = rand() % tablecount;
+		int y = rand() % tablecount;
+		if (table[y][x].type == 0) {
+			table[y][x].type = 3;
+			table[y][x].color = green;
+		}
+		else
+			i--;
+	}
+	for (int i = 0; i < 20; ++i) {
+		int x = rand() % tablecount;
+		int y = rand() % tablecount;
+		if (table[y][x].type == 0) {
+			table[y][x].type = 4;
+			table[y][x].color = blue;
+		}
+		else
+			i--;
+	}
+	for (int i = 0; i < 20; ++i) {
+		int x = rand() % tablecount;
+		int y = rand() % tablecount;
+		if (table[y][x].type == 0) {
+			table[y][x].type = 5;
+			table[y][x].color = black;
+		}
+		else
+			i--;
+	}
+	table[goal.x - 1][goal.y-1].type = 2;
+	table[goal.x - 1][goal.y-1].color = goalcolor;
+}
+
+// 40 x 40 바닥칠하기
+void floor(HDC hdc, int x, int y)
+{
+	int rx = cellsize / 2 + (cellsize * x);
+	int ry = cellsize / 2 + (cellsize * y);
+	Rectangle(hdc, rx - cellsize / 2, ry - cellsize / 2, rx + cellsize / 2, ry + cellsize / 2);
+}
+
+// 40 x 40 윗화살표 그리기
+void uparrow(HDC hdc, int x, int y)
+{
+	int rx = cellsize/2 + (cellsize * x);
+	int ry = cellsize / 2 + (cellsize  * y);
+	POINT point[8] = { {rx,ry - cellsize / 2},{rx - cellsize / 2,ry},{rx - cellsize / 4,ry},{rx - cellsize / 4,ry + cellsize / 2},{rx + cellsize / 4,ry + cellsize / 2},{rx + cellsize / 4,ry},{rx + cellsize / 2,ry},{rx,ry - cellsize / 2} };
+	Polygon(hdc, point, 8);
+}
+
+// 40 x 40 아래화살표 그리기
+void downarrow(HDC hdc, int x, int y)
+{
+	int rx = cellsize / 2 + (cellsize * x);
+	int ry = cellsize / 2 + (cellsize * y);
+	POINT point[8] = { {rx,ry + cellsize / 2},{rx - cellsize / 2,ry},{rx - cellsize / 4,ry},{rx - cellsize / 4,ry - cellsize / 2},{rx + cellsize / 4,ry - cellsize / 2},{rx + cellsize / 4,ry},{rx + cellsize / 2,ry},{rx,ry + cellsize / 2} };
+	Polygon(hdc, point, 8);
+}
+
+void drawtable(HDC hdc)
+{
+	for (int y = 0; y < tablecount; y++) {
+		for (int x = 0; x < tablecount; x++) {
+			HBRUSH brush = CreateSolidBrush(table[y][x].color);
+			SelectObject(hdc, brush);
+			floor(hdc, x, y);
+			DeleteObject(brush);
+			if (table[y][x].type == 3)
+				downarrow(hdc, x, y);
+			else if (table[y][x].type == 4)
+				uparrow(hdc, x, y);
+		}
+	}
+	for (int i = 0; i <= tablecount; i++) {
+		MoveToEx(hdc, i * cellsize, 0, NULL);
+		LineTo(hdc, i * cellsize, cellsize * tablecount);
+		MoveToEx(hdc, 0, i * cellsize, NULL);
+		LineTo(hdc, cellsize * tablecount, i * cellsize);
+	}
+}
+
+void MovePlayer(int dx, int dy) {
+	Player& p = player[presentplayer];
+	int nx = p.x + dx;
+	int ny = p.y + dy;
+	if (nx < 0 || ny < 0 || nx >= tablecount || ny >= tablecount)
+		return;
+	if (table[ny][nx].type == 1)
+		return;
+
+	p.x = nx;
+	p.y = ny;
+
+	Cell& cell = table[ny][nx];
+	switch (cell.type) {
+	case 2: p.color = cell.color; break;
+	case 3: p.size = (p.size > cellsize / 4) ? p.size - cellsize / 4 : cellsize; break;
+	case 4: p.size = (p.size < cellsize) ? p.size + cellsize / 4 : cellsize / 4; break;
+	case 5:
+		p.shape = rand() % 4 + 1;
+		p.shapeTimer = 10;
 		break;
-
-	case WM_KEYDOWN:
-		if (wParam == VK_F1) {
-			HandleF1();
-		}
-		else if (wParam == VK_F2) {
-			HandleF2();
-		}
-		else if (wParam == VK_F3) {
-			HandleF3();
-		}
-		else if (wParam == VK_F4) {
-			HandleF4();
-		}
-		else if (wParam == VK_F5) {
-			HandleF5();
-		}
-		else if (wParam == VK_F6) {
-			HandleF6();
-		}
-		else if (wParam == VK_ADD) {
-			HandlePlus();
-		}
-		else if (wParam == VK_SUBTRACT) {
-			HandleMinus();
-		}
-		else if (wParam == VK_BACK) {
-			HandleBackspace();
-		}
-		else if (wParam == VK_ESCAPE) {
-			HandleEsc();
-		}
-		else if (wParam == VK_RETURN) {
-			HandleEnter();
-		}
-		else if (wParam == VK_TAB) {
-			HandleTab();
-		}
-		else if (wParam == VK_HOME) {
-			HandleHome();
-		}
-		else if (wParam == VK_END) {
-			HandleEnd();
-		}
-		else if (wParam == VK_INSERT) {
-			HandleInsert();
-		}
-		else if (wParam == VK_DELETE) {
-			HandleDel();
-		}
-		else if (wParam == VK_LEFT || wParam == VK_RIGHT || wParam == VK_UP || wParam == VK_DOWN) {
-			HandleArrowKey(wParam);
-		}
-		else if (wParam == VK_PRIOR || wParam == VK_NEXT) {
-			HandlePageUpDown(wParam);
-		}
-		else if (wParam >= 0x20 && wParam <= 0x7E) {
-			// 일반 문자 처리 (A-Z, a-z, 0-9, 특수문자)
-			InsertChar((TCHAR)wParam);
-		}
-
-		InvalidateRect(hWnd, NULL, TRUE);
-		break;
-
-	case WM_PAINT:
-		hDC = BeginPaint(hWnd, &ps);
-		GetTextExtentPoint32(hDC, str[0], MAX_CHARS_PER_LINE, &size);
-
-		for (int i = 0; i < MAX_LINES; i++) {
-			TextOut(hDC, 0, 20 * i, str[i], _tcslen(str[i]));
-		}
-
-		SetCaretPos(size.cx, 20 * currentLine);
-		EndPaint(hWnd, &ps);
-		break;
-
-	case WM_DESTROY:
-		PostQuitMessage(0);
-		return 0;
 	}
 
-	return DefWindowProc(hWnd, iMessage, wParam, lParam);
+	if (p.shapeTimer > 0) {
+		--p.shapeTimer;
+		if (p.shapeTimer == 0)
+			p.shape = 0; // 되돌리는 대신 랜덤으로
+	}
+
+	if (p.x == goal.x && p.y == goal.y && p.shape == goalshape && p.color == goalcolor && p.size == goalsize) {
+		if (!presentplayer)
+			ending = 0;
+		else
+			ending = 1;
+	}
+
+	presentplayer = 1 - presentplayer;
+}
+
+
+// 원 그리기
+void circle(HDC hdc, int x, int y, int size)
+{
+	Ellipse(hdc, x - size/2, y - size / 2, x + size / 2, y + size / 2);
+}
+// 타원 그리기
+void oval(HDC hdc, int x, int y, int size)
+{
+	Ellipse(hdc, x - size / 2, y - size / 3, x + size / 2, y + size / 3);
+}
+// 사각형 그리기
+void square(HDC hdc, int x, int y, int size)
+{
+	Rectangle(hdc, x - size / 2, y - size / 2, x + size / 2, y + size / 2);
+}
+// 삼각형 그리기
+void triangle(HDC hdc, int x, int y, int size)
+{
+	POINT point[3] = { {x,y - size * 2/3}, {x - size / 2, y + size /3},{x + size / 2, y + size / 3} };
+	Polygon(hdc, point, 3);
+}
+// 모레시계 그리기 player 1
+void sandglass(HDC hdc, int x, int y, int size)
+{
+	POINT point[6] = { {x,y},{x - size / 2,y - size / 2},{x + size / 2,y - size / 2},{x,y},{x + size / 2,y + size / 2},{x - size / 2,y + size / 2}};
+	Polygon(hdc, point, 6);
+}
+
+// 오각형 그리기 player 2
+void pentagon(HDC hdc, int x, int y, int size)
+{
+	double pi = 3.14;
+	int r = size * 3 / 5;
+	POINT point[5];
+	for (int i = 0; i < 5; i++) {
+		double angle = -pi / 2 + i * (2 * pi / 5);
+		point[i].x = (x + r * cos(angle));
+		point[i].y = (y + r * sin(angle));
+	}
+	Polygon(hdc, point, 5);
+}
+
+void drawshape(HDC hdc, int x, int y, COLORREF color, int size, int shape, int now)
+{
+	int rx = cellsize/2 + (cellsize * x);
+	int ry = cellsize/2 + (cellsize * y);
+	HBRUSH brush = CreateSolidBrush(color);
+	SelectObject(hdc, brush);
+	switch (shape)
+	{
+	case 0:
+		if(!now)
+			sandglass(hdc, rx, ry, size);
+		else
+			pentagon(hdc, rx, ry, size);
+		break;
+	case 1:
+		triangle(hdc, rx, ry, size);
+		break;
+	case 2:
+		square(hdc, rx, ry, size);
+		break;
+	case 3:
+		circle(hdc, rx, ry, size);
+		break;
+	case 4:
+		oval(hdc, rx, ry, size);
+		break;
+	default:
+		break;
+	}
+}
+
+
+
+LRESULT CALLBACK WndProc(HWND hWnd, UINT iMessage, WPARAM wParam, LPARAM lParam)
+{
+	PAINTSTRUCT ps;
+	HDC hDC;
+	HPEN hDefPen;
+	HBRUSH hDefBrush, hRedBrush, hBlueBrush, hGreenBrush, hYellowBrush, hTurquoiseBrush;
+	RECT Now;
+	switch (iMessage) {
+	case WM_CREATE:
+		settinggame();
+		break;
+	case WM_PAINT:
+	{
+		PAINTSTRUCT ps;
+		HDC hdc = BeginPaint(hWnd, &ps);
+		drawtable(hdc);
+
+		for (int i = 0; i < 2; ++i)
+			drawshape(hdc, player[i].x, player[i].y, player[i].color, player[i].size, player[i].shape, i);
+
+		drawshape(hdc, goal.x, goal.y, goalcolor, goalsize, goalshape, 0);
+		if (ending == 0)
+			TextOut(hdc, 0, cellsize * tablecount, L"player1 승리", 10);
+		else if(ending == 1)
+			TextOut(hdc, 0, cellsize * tablecount, L"player2 승리", 10);
+		EndPaint(hWnd, &ps);
+	}
+	break;
+	case WM_KEYDOWN:
+		if (ending == 2) {
+			if (wParam == 'Q')
+				PostQuitMessage(0);
+			else {
+				if (presentplayer == 0) {
+					if (wParam == 'W') MovePlayer(0, -1);
+					else if (wParam == 'A') MovePlayer(-1, 0);
+					else if (wParam == 'S') MovePlayer(0, 1);
+					else if (wParam == 'D') MovePlayer(1, 0);
+				}
+				else {
+					if (wParam == 'I') MovePlayer(0, -1);
+					else if (wParam == 'J') MovePlayer(-1, 0);
+					else if (wParam == 'K') MovePlayer(0, 1);
+					else if (wParam == 'L') MovePlayer(1, 0);
+				}
+			}
+		}
+		else if (wParam == 'R')
+			settinggame();
+		InvalidateRect(hWnd, NULL, TRUE);
+		break;
+	case WM_DESTROY:
+		PostQuitMessage(0);
+		break;
+	default:
+		return DefWindowProc(hWnd, iMessage, wParam, lParam);
+}
+return 0;
 }

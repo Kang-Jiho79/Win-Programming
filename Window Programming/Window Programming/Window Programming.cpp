@@ -1,4 +1,5 @@
-﻿#define _CRT_SECURE_NO_WARNINGS
+﻿//실습 7, 8, 9 메모장
+#define _CRT_SECURE_NO_WARNINGS
 #include <windows.h>
 #include <tchar.h>
 #include <stdlib.h>
@@ -118,15 +119,27 @@ void insertword(TCHAR ch)
 		count[entercount]++;
 	}
 	else if (count[entercount] < max_char){
-		str[entercount][present] = c;
-		CaretPoint[present++] = c;
-		count[entercount]++;
+		if (present < count[entercount]) {
+			str[entercount][present] = c;
+			CaretPoint[present++] = c;
+		}
+		else {
+			str[entercount][present] = c;
+			CaretPoint[present++] = c;
+			count[entercount]++;
+		}
 	}
 	else if (!insertcheck) {
 		enterkey();
-		str[entercount][present] = c;
-		CaretPoint[present++] = c;
-		count[entercount]++;
+		if (present < count[entercount]) {
+			str[entercount][present] = c;
+			CaretPoint[present++] = c;
+		}
+		else {
+			str[entercount][present] = c;
+			CaretPoint[present++] = c;
+			count[entercount]++;
+		}
 	}
 }
 
@@ -215,7 +228,6 @@ void strset()
 	}
 }
 
-
 // 전체 초기화 (esc)
 void esckey()
 {
@@ -265,39 +277,32 @@ void endkey()
 // 단어 지우기 (delete)
 void DeleteWord()
 {
-	int Start = present, End = present, Endcheck = 0;
-	bool Startcheck = true;
-	if (str[entercount][present] != ' ') {
-		while (Startcheck || Endcheck == 0) {
-			if (str[entercount][Start] == ' ')
-				Startcheck = false;
-			else
-				Start--;
-			if (str[entercount][End] == ' ')
-				Endcheck = 1;
-			else if (str[entercount][End] == '\0')
-				Endcheck = 2;
-			else
-				End++;
-		}
-		if (Endcheck == 1) {
-			int s = Start;
-			for (int i = End; i < count[entercount]; i++)
-				str[entercount][s++] = str[entercount][i];
-			CaretPointSet(entercount, present);
-			count[entercount] = count[entercount] - (End - Start);
+	int len = count[entercount], start = present, end = present;
 
-			for (int i = count[entercount]; i < 30; i++)
-				str[entercount][i] = '\0';
-		}
-		else {
-			for (int i = Start; i < count[entercount]; i++) {
-				str[entercount][i] = '\0';
-			}
-			count[entercount] = Start;
-			CaretPointSet(entercount, Start - 1);
-		}
+	while (start > 0 && str[entercount][start - 1] != ' ') {
+		start--;
 	}
+
+	while (end < len && str[entercount][end] != ' ') {
+		end++;
+	}
+	int dellen = end - start;
+
+	for (int i = end; i < len; i++) {
+		str[entercount][i - dellen] = str[entercount][i];
+	}
+	for (int i = len - dellen; i < len; i++) {
+		str[entercount][i] = '\0';
+	}
+	count[entercount] -= dellen;
+
+	if (start >= count[entercount]) {
+		int newpos = count[entercount] - 1;
+		while (newpos > 0 && str[entercount][newpos] == ' ')newpos--;
+		CaretPointSet(entercount, newpos >= 0 ? newpos : 0);
+	}
+	else
+		CaretPointSet(entercount, start);
 }
 
 // 상하좌우로 이동
