@@ -1,4 +1,4 @@
-﻿//실습 11번
+﻿//실습 12번
 #define _CRT_SECURE_NO_WARNINGS
 #include <windows.h>
 #include <tchar.h>
@@ -6,8 +6,8 @@
 #include <time.h>
 #include <math.h>
 
-#define xdistance 250
-#define ydistance 200
+#define tablecount 25
+#define cellsize 25
 
 HINSTANCE g_hInst;
 LPCTSTR IpszClass = L"Window Class Name";
@@ -36,7 +36,7 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevlnstance, LPSTR lpszCmdPa
 	WndClass.hIconSm = LoadIcon(NULL, IDI_APPLICATION);		//작은 아이콘 (보통 hIcon과 같은걸 사용)
 	RegisterClassEx(&WndClass);
 
-	hWnd = CreateWindow(IpszClass, IpszWindowName, WS_OVERLAPPEDWINDOW, 0, 0, 800, 600, NULL, (HMENU)NULL, hInstance, NULL);	//윈도우 만들기 함수
+	hWnd = CreateWindow(IpszClass, IpszWindowName, WS_OVERLAPPEDWINDOW, 0, 0, 1100, 1100, NULL, (HMENU)NULL, hInstance, NULL);	//윈도우 만들기 함수
 
 	ShowWindow(hWnd, nCMdShow);	//	윈도우 띄우기
 	UpdateWindow(hWnd);		// 윈도우 업데이트
@@ -48,41 +48,226 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevlnstance, LPSTR lpszCmdPa
 	return Message.wParam;
 }
 
-// 200 x 150 사각형그리기
-void quadrangle(HDC hdc, int x, int y)
+struct Cell {
+	int shapetype;	// 0 : 비어있음 1 : 원 2 : 삼각형 3 ; 사각형
+	int x, y;
+	int size = cellsize;
+	COLORREF color;
+};
+
+Player player[2];
+int presentplayer = 0;
+Cell table[tablecount][tablecount];
+int goalsize;
+int goalshape;
+COLORREF goalcolor;
+POINT goal;
+int ending = 2;
+
+COLORREF red = RGB(255, 0, 0);	//장애물 색
+COLORREF green = RGB(0, 255, 0); //축소 색
+COLORREF blue = RGB(0, 0, 255); //확대 색
+COLORREF black = RGB(0, 0, 0); //모양변경 색
+COLORREF colors[5];
+
+// 게임 기초 세팅
+void settinggame()
 {
-	Rectangle(hdc, x - 100, y - 75, x + 100, y + 75);
+	srand((unsigned)time(0));
+	ending = 2;
+	for (int i = 0; i < tablecount; ++i) {
+		for (int j = 0; j < tablecount; ++j) {
+			table[i][j].type = 0;
+			table[i][j].color = RGB(255, 255, 255);
+		}
+	}
+	player[0] = { 0, 0, RGB(rand() % 256, rand() % 256, rand() % 256), cellsize / 4, 0, 0 };
+	player[1] = { tablecount - 1, 0, RGB(rand() % 256, rand() % 256, rand() % 256), cellsize / 4, 0, 0 };
+
+	for (int i = 0; i < 5; i++) {
+		colors[i] = RGB(rand() % 256, rand() % 256, rand() % 256);
+	}
+	goalcolor = colors[rand() % 5];
+	goalshape = rand() % 4 + 1;
+	goal = { tablecount / 2,tablecount - 1 };
+	table[goal.y][goal.x].type = 6;
+	goalsize = (rand() % 4 + 1) * cellsize / 4;
+
+	for (int i = 0; i < 20; ++i) {
+		int x = rand() % tablecount;
+		int y = rand() % tablecount;
+		if (table[y][x].type == 0) {
+			table[y][x].type = 1;
+			table[y][x].color = red;
+		}
+		else
+			i--;
+	}
+	for (int i = 0; i < 20; ++i) {
+		int x = rand() % tablecount;
+		int y = rand() % tablecount;
+		if (table[y][x].type == 0) {
+			table[y][x].type = 2;
+			table[y][x].color = colors[rand() % 5];
+		}
+		else
+			i--;
+	}
+	for (int i = 0; i < 20; ++i) {
+		int x = rand() % tablecount;
+		int y = rand() % tablecount;
+		if (table[y][x].type == 0) {
+			table[y][x].type = 3;
+			table[y][x].color = green;
+		}
+		else
+			i--;
+	}
+	for (int i = 0; i < 20; ++i) {
+		int x = rand() % tablecount;
+		int y = rand() % tablecount;
+		if (table[y][x].type == 0) {
+			table[y][x].type = 4;
+			table[y][x].color = blue;
+		}
+		else
+			i--;
+	}
+	for (int i = 0; i < 20; ++i) {
+		int x = rand() % tablecount;
+		int y = rand() % tablecount;
+		if (table[y][x].type == 0) {
+			table[y][x].type = 5;
+			table[y][x].color = black;
+		}
+		else
+			i--;
+	}
+	table[goal.x - 1][goal.y - 1].type = 2;
+	table[goal.x - 1][goal.y - 1].color = goalcolor;
 }
 
-// 100 x 100 원 그리기
-void circle(HDC hdc, int x, int y)
+// 40 x 40 바닥칠하기
+void floor(HDC hdc, int x, int y)
 {
-	Ellipse(hdc, x - 50, y - 50, x + 50, y + 50);
-}
-// 200 x 100 타원 그리기
-void oval(HDC hdc, int x, int y)
-{
-	Ellipse(hdc, x - 75, y - 50, x + 75, y + 50);
+	int rx = cellsize / 2 + (cellsize * x);
+	int ry = cellsize / 2 + (cellsize * y);
+	Rectangle(hdc, rx - cellsize / 2, ry - cellsize / 2, rx + cellsize / 2, ry + cellsize / 2);
 }
 
-// 100 x 100 모레시계 그리기
-void sandglass(HDC hdc, int x, int y)
+// 40 x 40 윗화살표 그리기
+void uparrow(HDC hdc, int x, int y)
 {
-	POINT point[7] = { {x,y},{x - 50,y - 50},{x + 50,y - 50},{x,y},{x + 50,y + 50},{x - 50,y + 50},{x,y} };
-	Polygon(hdc, point, 7);
-}
-// 100 x 100 누워있는 모레시계그리기
-void liedownsandglass(HDC hdc, int x, int y)
-{
-	POINT point[7] = { {x,y},{x - 50,y - 50},{x - 50,y + 50},{x,y},{x + 50,y - 50},{x + 50,y + 50},{x,y} };
-	Polygon(hdc, point, 7);
+	int rx = cellsize / 2 + (cellsize * x);
+	int ry = cellsize / 2 + (cellsize * y);
+	POINT point[8] = { {rx,ry - cellsize / 2},{rx - cellsize / 2,ry},{rx - cellsize / 4,ry},{rx - cellsize / 4,ry + cellsize / 2},{rx + cellsize / 4,ry + cellsize / 2},{rx + cellsize / 4,ry},{rx + cellsize / 2,ry},{rx,ry - cellsize / 2} };
+	Polygon(hdc, point, 8);
 }
 
-// 100 x 100 오각형 그리기
-void pentagon(HDC hdc, int x, int y)
+// 40 x 40 아래화살표 그리기
+void downarrow(HDC hdc, int x, int y)
+{
+	int rx = cellsize / 2 + (cellsize * x);
+	int ry = cellsize / 2 + (cellsize * y);
+	POINT point[8] = { {rx,ry + cellsize / 2},{rx - cellsize / 2,ry},{rx - cellsize / 4,ry},{rx - cellsize / 4,ry - cellsize / 2},{rx + cellsize / 4,ry - cellsize / 2},{rx + cellsize / 4,ry},{rx + cellsize / 2,ry},{rx,ry + cellsize / 2} };
+	Polygon(hdc, point, 8);
+}
+
+void drawtable(HDC hdc)
+{
+	for (int y = 0; y < tablecount; y++) {
+		for (int x = 0; x < tablecount; x++) {
+			HBRUSH brush = CreateSolidBrush(table[y][x].color);
+			SelectObject(hdc, brush);
+			floor(hdc, x, y);
+			DeleteObject(brush);
+			if (table[y][x].type == 3)
+				downarrow(hdc, x, y);
+			else if (table[y][x].type == 4)
+				uparrow(hdc, x, y);
+		}
+	}
+	for (int i = 0; i <= tablecount; i++) {
+		MoveToEx(hdc, i * cellsize, 0, NULL);
+		LineTo(hdc, i * cellsize, cellsize * tablecount);
+		MoveToEx(hdc, 0, i * cellsize, NULL);
+		LineTo(hdc, cellsize * tablecount, i * cellsize);
+	}
+}
+
+void MovePlayer(int dx, int dy) {
+	Player& p = player[presentplayer];
+	int nx = p.x + dx;
+	int ny = p.y + dy;
+	if (nx < 0 || ny < 0 || nx >= tablecount || ny >= tablecount)
+		return;
+	if (table[ny][nx].type == 1)
+		return;
+
+	p.x = nx;
+	p.y = ny;
+
+	Cell& cell = table[ny][nx];
+	switch (cell.type) {
+	case 2: p.color = cell.color; break;
+	case 3: p.size = (p.size > cellsize / 4) ? p.size - cellsize / 4 : cellsize; break;
+	case 4: p.size = (p.size < cellsize) ? p.size + cellsize / 4 : cellsize / 4; break;
+	case 5:
+		p.shape = rand() % 4 + 1;
+		p.shapeTimer = 10;
+		break;
+	}
+
+	if (p.shapeTimer > 0) {
+		--p.shapeTimer;
+		if (p.shapeTimer == 0)
+			p.shape = 0; // 되돌리는 대신 랜덤으로
+	}
+
+	if (p.x == goal.x && p.y == goal.y && p.shape == goalshape && p.color == goalcolor && p.size == goalsize) {
+		if (presentplayer == 0)
+			ending = 0;
+		else if (presentplayer == 1)
+			ending = 1;
+	}
+
+	presentplayer = 1 - presentplayer;
+}
+
+
+// 원 그리기
+void circle(HDC hdc, int x, int y, int size)
+{
+	Ellipse(hdc, x - size / 2, y - size / 2, x + size / 2, y + size / 2);
+}
+// 타원 그리기
+void oval(HDC hdc, int x, int y, int size)
+{
+	Ellipse(hdc, x - size / 2, y - size / 3, x + size / 2, y + size / 3);
+}
+// 사각형 그리기
+void square(HDC hdc, int x, int y, int size)
+{
+	Rectangle(hdc, x - size / 2, y - size / 2, x + size / 2, y + size / 2);
+}
+// 삼각형 그리기
+void triangle(HDC hdc, int x, int y, int size)
+{
+	POINT point[3] = { {x,y - size * 2 / 3}, {x - size / 2, y + size / 3},{x + size / 2, y + size / 3} };
+	Polygon(hdc, point, 3);
+}
+// 모레시계 그리기 player 1
+void sandglass(HDC hdc, int x, int y, int size)
+{
+	POINT point[6] = { {x,y},{x - size / 2,y - size / 2},{x + size / 2,y - size / 2},{x,y},{x + size / 2,y + size / 2},{x - size / 2,y + size / 2} };
+	Polygon(hdc, point, 6);
+}
+
+// 오각형 그리기 player 2
+void pentagon(HDC hdc, int x, int y, int size)
 {
 	double pi = 3.14;
-	int r = 60;
+	int r = size * 3 / 5;
 	POINT point[5];
 	for (int i = 0; i < 5; i++) {
 		double angle = -pi / 2 + i * (2 * pi / 5);
@@ -91,34 +276,38 @@ void pentagon(HDC hdc, int x, int y)
 	}
 	Polygon(hdc, point, 5);
 }
-// 100 x 100 거꾸로된 오각형 그리기
-void reversepentagon(HDC hdc, int x, int y)
+
+void drawshape(HDC hdc, int x, int y, COLORREF color, int size, int shape, int now)
 {
-	double pi = 3.14;
-	int r = 60;
-	POINT point[5];
-	for (int i = 0; i < 5; i++) {
-		double angle = pi / 2 + i * (2 * pi / 5);
-		point[i].x = (x + r * cos(angle));
-		point[i].y = (y + r * sin(angle));
+	int rx = cellsize / 2 + (cellsize * x);
+	int ry = cellsize / 2 + (cellsize * y);
+	HBRUSH brush = CreateSolidBrush(color);
+	SelectObject(hdc, brush);
+	switch (shape)
+	{
+	case 0:
+		if (!now)
+			sandglass(hdc, rx, ry, size);
+		else
+			pentagon(hdc, rx, ry, size);
+		break;
+	case 1:
+		triangle(hdc, rx, ry, size);
+		break;
+	case 2:
+		square(hdc, rx, ry, size);
+		break;
+	case 3:
+		circle(hdc, rx, ry, size);
+		break;
+	case 4:
+		oval(hdc, rx, ry, size);
+		break;
+	default:
+		break;
 	}
-	Polygon(hdc, point, 5);
 }
 
-// 100 x 100 파이 그리기
-void pie(HDC hdc, int x, int y)
-{
-	Pie(hdc, x - 50, y - 50, x + 50, y + 50, x, y - 50, x + 50, y);
-}
-// 100 x 100 나머지 파이부분 그리기
-void remainpie(HDC hdc, int x, int y)
-{
-	Pie(hdc, x - 50, y - 50, x + 50, y + 50, x + 50, y, x, y - 50);
-}
-
-int present = 4; // 현재 중앙의 그려져있는 도형 0 : 원/ 1 : 모레시계/ 2 : 오각형/ 3 : 파이
-bool pushcheck[5] = { false }; // 눌려있는지 확인
-int turn[4] = { 0,1,2,3 };
 
 
 LRESULT CALLBACK WndProc(HWND hWnd, UINT iMessage, WPARAM wParam, LPARAM lParam)
@@ -128,130 +317,55 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT iMessage, WPARAM wParam, LPARAM lParam)
 	HPEN hDefPen;
 	HBRUSH hDefBrush, hRedBrush, hBlueBrush, hGreenBrush, hYellowBrush, hTurquoiseBrush;
 	RECT Now;
-	GetClientRect(hWnd, &Now);
-	int x = (Now.left + Now.right) / 2, y = (Now.top + Now.bottom) / 2;
-	POINT point[4] = { {x - xdistance , y}, {x,y - ydistance}, {x + xdistance,y}, { x,y + ydistance } };
 	switch (iMessage) {
-
-	case WM_KEYDOWN:
-	{
-		if (wParam == 'Q') {
-			PostQuitMessage(0);
-			break;
-		}
-		else if (wParam == 'C') {
-			pushcheck[0] = true;
-			present = 0;
-		}
-		else if (wParam == 'S') {
-			pushcheck[1] = true;
-			present = 1;
-		}
-		else if (wParam == 'P') {
-			pushcheck[2] = true;
-			present = 2;
-		}
-		else if (wParam == 'E') {
-			pushcheck[3] = true;
-			present = 3;
-		}
-		else if (wParam == VK_LEFT) {
-			for (int i = 0; i < 4; i++) {
-				if (turn[i] == 0)
-					turn[i] = 3;
-				else
-					turn[i]--;
-				if (turn[i] == 0)
-					present = i;
-			}
-		}
-		else if (wParam == VK_RIGHT) {
-			for (int i = 0; i < 4; i++) {
-				if (turn[i] == 3)
-					turn[i] = 0;
-				else
-					turn[i]++;
-				if (turn[i] == 0)
-					present = i;
-			}
-		}
-		InvalidateRect(hWnd, NULL, TRUE);
-	}
-	break;
-	case WM_KEYUP:
-	{
-		if (wParam == 'C') {
-			pushcheck[0] = false;
-		}
-		else if (wParam == 'S') {
-			pushcheck[1] = false;
-		}
-		else if (wParam == 'P') {
-			pushcheck[2] = false;
-		}
-		else if (wParam == 'E') {
-			pushcheck[3] = false;
-		}
-		InvalidateRect(hWnd, NULL, TRUE);
-	}
-	break;
+	case WM_CREATE:
+		settinggame();
+		break;
 	case WM_PAINT:
 	{
-		hDC = BeginPaint(hWnd, &ps);
-		hRedBrush = CreateSolidBrush(RGB(255, 0, 0));
-		hBlueBrush = CreateSolidBrush(RGB(0, 0, 255));
-		hGreenBrush = CreateSolidBrush(RGB(0, 255, 0));
-		hYellowBrush = CreateSolidBrush(RGB(255, 255, 0));
-		hTurquoiseBrush = CreateSolidBrush(RGB(0, 255, 255));
-		quadrangle(hDC, x, y);
-		if (pushcheck[0])
-			hDefBrush = (HBRUSH)SelectObject(hDC, hTurquoiseBrush);
-		else
-			hDefBrush = (HBRUSH)SelectObject(hDC, hBlueBrush);
-		circle(hDC, point[turn[0]].x, point[turn[0]].y);
-		if (present == 0)
-			oval(hDC, x, y);
-		SelectObject(hDC, hDefBrush);
+		PAINTSTRUCT ps;
+		HDC hdc = BeginPaint(hWnd, &ps);
+		drawtable(hdc);
 
-		if (pushcheck[1])
-			hDefBrush = (HBRUSH)SelectObject(hDC, hTurquoiseBrush);
-		else
-			hDefBrush = (HBRUSH)SelectObject(hDC, hRedBrush);
-		sandglass(hDC, point[turn[1]].x, point[turn[1]].y);
-		if (present == 1)
-			liedownsandglass(hDC, x, y);
-		SelectObject(hDC, hDefBrush);
+		for (int i = 0; i < 2; ++i)
+			drawshape(hdc, player[i].x, player[i].y, player[i].color, player[i].size, player[i].shape, i);
 
-
-		if (pushcheck[2])
-			hDefBrush = (HBRUSH)SelectObject(hDC, hTurquoiseBrush);
-		else
-			hDefBrush = (HBRUSH)SelectObject(hDC, hYellowBrush);
-		pentagon(hDC, point[turn[2]].x, point[turn[2]].y);
-		if (present == 2)
-			reversepentagon(hDC, x, y);
-		SelectObject(hDC, hDefBrush);
-
-		if (pushcheck[3])
-			hDefBrush = (HBRUSH)SelectObject(hDC, hTurquoiseBrush);
-		else
-			hDefBrush = (HBRUSH)SelectObject(hDC, hGreenBrush);
-		pie(hDC, point[turn[3]].x, point[turn[3]].y);
-		if (present == 3)
-			remainpie(hDC, x, y);
-		SelectObject(hDC, hDefBrush);
-
-		DeleteObject(hRedBrush);
-		DeleteObject(hBlueBrush);
-		DeleteObject(hGreenBrush);
-		DeleteObject(hYellowBrush);
-		DeleteObject(hTurquoiseBrush);
+		drawshape(hdc, goal.x, goal.y, goalcolor, goalsize, goalshape, 0);
+		if (ending == 0)
+			TextOut(hdc, 0, cellsize * tablecount, L"player1 승리", 10);
+		else if (ending == 1)
+			TextOut(hdc, 0, cellsize * tablecount, L"player2 승리", 10);
 		EndPaint(hWnd, &ps);
 	}
 	break;
+	case WM_KEYDOWN:
+		if (ending == 2) {
+			if (wParam == 'Q')
+				PostQuitMessage(0);
+			else {
+				if (presentplayer == 0) {
+					if (wParam == 'W') MovePlayer(0, -1);
+					else if (wParam == 'A') MovePlayer(-1, 0);
+					else if (wParam == 'S') MovePlayer(0, 1);
+					else if (wParam == 'D') MovePlayer(1, 0);
+				}
+				else {
+					if (wParam == 'I') MovePlayer(0, -1);
+					else if (wParam == 'J') MovePlayer(-1, 0);
+					else if (wParam == 'K') MovePlayer(0, 1);
+					else if (wParam == 'L') MovePlayer(1, 0);
+				}
+			}
+		}
+		else if (wParam == 'R')
+			settinggame();
+		InvalidateRect(hWnd, NULL, TRUE);
+		break;
 	case WM_DESTROY:
 		PostQuitMessage(0);
-		return 0;
+		break;
+	default:
+		return DefWindowProc(hWnd, iMessage, wParam, lParam);
 	}
-	return (DefWindowProc(hWnd, iMessage, wParam, lParam));
+	return 0;
 }

@@ -214,7 +214,7 @@ void strset()
 		}
 		else if (randomcharcheck) {
 			std::srand(std::time(0));
-			TCHAR ch = 'a' + std::rand() % 26;
+			TCHAR ch = 'a' + std::rand() % 26;;		
 			for (int j = 0; j < count[i]; j++)
 				if (str[i][j] == ch || str[i][j] == towupper(ch))
 					strout[i] += '@';
@@ -388,19 +388,37 @@ void threetimemove(TCHAR ch)
 // 줄 쉬프트 (F6)
 void F6key()
 {
+	int first, check = 0, firstcount;
 	TCHAR temp[31];
-	int counttemp = count[max_line - 1];
-	for (int i = 0; i < count[max_line - 1]; i++)
-		temp[i] = str[max_line-1][i];
-	for (int i = max_line - 1; i > 0; i--) {
-		for (int j = 0; j < 30; j++)
-			str[i][j] = str[i - 1][j];
-		count[i] = count[i - 1];
+	for (int i = max_line-1; i > -1; i--) {
+		if (str[i][0] >= 0x20 && str [i][0]<= 0x7E) {
+			if (check != 0) {
+				
+				for (int j = i + 1; j < max_line; j++)
+					if (str[j][0] >= 0x20 && str[j][0] <= 0x7E) {
+						for (int x = 0; x < max_char; x++)
+							str[j][x] = str[i][x];
+						count[j] = count[i];
+						break;
+					}
+			}
+			else {
+				for (int x = 0; x < max_char; x++)
+					temp[x] = str[i][x];
+				firstcount = count[i];
+			}
+			check++;
+		}
 	}
-	for (int i = 0; i < 30; i < i++)
-		str[0][i] = temp[i];
-	count[0] = counttemp;
-	CaretPointSet(entercount, present);
+	for (int i = 0; i < max_line; i++)
+		if (str[i][0] >= 0x20 && str[i][0] <= 0x7E) {
+			first = i;
+			break;
+		}
+	for (int x = 0; x < max_char; x++)
+		str[first][x] = temp[x];
+	count[first] = firstcount;
+	CaretPointReset();
 }
 
 

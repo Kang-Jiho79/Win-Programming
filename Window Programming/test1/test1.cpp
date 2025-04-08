@@ -1,222 +1,221 @@
-﻿// WinAPI 기반의 턴제 격자 게임
+﻿//실습 12번
+#define _CRT_SECURE_NO_WARNINGS
 #include <windows.h>
 #include <tchar.h>
-#include <ctime>
-#include <string>
-#include <vector>
+#include <stdlib.h>
+#include <time.h>
+#include <math.h>
 
-#define GRID_SIZE 40
-#define GRID_COUNT 40
-#define WINDOW_WIDTH (GRID_SIZE * GRID_COUNT)
-#define WINDOW_HEIGHT (GRID_SIZE * GRID_COUNT)
+#define tablecount 20
+#define cellsize 20
 
-enum Shape { TRIANGLE, RECTANGLE, CIRCLE, ELLIPSE };
+HINSTANCE g_hInst;
+LPCTSTR IpszClass = L"Window Class Name";
+LPCTSTR IpszWindowName = L"Window Programming Lab";
+
+LRESULT CALLBACK WndProc(HWND hWnd, UINT iMessage, WPARAM wParam, LPARAM lParam);
+
+int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevlnstance, LPSTR lpszCmdParam, int nCMdShow)	// 메인함수 
+{
+	HWND hWnd;
+	MSG Message;
+	WNDCLASSEX WndClass;	//윈도우 클래스
+	g_hInst = hInstance;
+
+	WndClass.cbSize = sizeof(WndClass);	//	구조체의 크기
+	WndClass.style = CS_HREDRAW | CS_VREDRAW;	//	윈도우 출력 스타일
+	WndClass.lpfnWndProc = (WNDPROC)WndProc;	//	윈도우 메세지를 처리하는 윈도우 프로시저 함수 이름 (Long Pointer Funtion WndProc)
+	WndClass.cbClsExtra = 0;	//	사용여분 메모리(class)
+	WndClass.cbWndExtra = 0;	//	사용여분 메모리(Window)
+	WndClass.hInstance = hInstance;		//응용 프로그램 ID
+	WndClass.hIcon = LoadIcon(NULL, IDI_APPLICATION);	// 실행파일의 쓰일 아이콘지정
+	WndClass.hCursor = LoadCursor(NULL, IDC_ARROW);		// 윈도우에서 쓰일 커서지정
+	WndClass.hbrBackground = (HBRUSH)GetStockObject(WHITE_BRUSH);	// 윈도우의 배경색을 설정할수있다.
+	WndClass.lpszMenuName = NULL;	//메뉴 이름
+	WndClass.lpszClassName = IpszClass;		//	클래스의 이름
+	WndClass.hIconSm = LoadIcon(NULL, IDI_APPLICATION);		//작은 아이콘 (보통 hIcon과 같은걸 사용)
+	RegisterClassEx(&WndClass);
+
+	hWnd = CreateWindow(IpszClass, IpszWindowName, WS_OVERLAPPEDWINDOW, 0, 0, 1100, 1100, NULL, (HMENU)NULL, hInstance, NULL);	//윈도우 만들기 함수
+
+	ShowWindow(hWnd, nCMdShow);	//	윈도우 띄우기
+	UpdateWindow(hWnd);		// 윈도우 업데이트
+
+	while (GetMessage(&Message, 0, 0, 0)) {		//	메시지 루프 (메시지 받아오는 역할) -  종료메시지가 들어올때까지 반복
+		TranslateMessage(&Message);		//	메시지 번역
+		DispatchMessage(&Message);	//	메시지 처리
+	}
+	return Message.wParam;
+}
 
 struct Player {
-    int x, y;
-    COLORREF color;
-    int size; // 1~GRID_SIZE
-    Shape shape;
-    int shapeTimer;
+	int x, y;
 };
 
 struct Cell {
-    int type; // 0: 일반, 1: 장애물, 2: 색상 변경, 3: 축소, 4: 확대, 5: 모양 변경
-    COLORREF color;
+	bool check = false;
+	int wordnumber = 0;
 };
 
-Player players[2];
-int currentPlayer = 0;
-Cell grid[GRID_COUNT][GRID_COUNT];
+Player player;
+Cell table[tablecount][tablecount];
+TCHAR words[5][6] = { L"APPLE", L"WORLD", L"CLASS", L"TABLE", L"STUDY" };
+int r;
+	
 
-Shape goalShape;
-COLORREF goalColor;
-int goalSize;
-POINT goalPos;
 
-void InitGame() {
-    srand((unsigned)time(0));
-    for (int i = 0; i < GRID_COUNT; ++i) {
-        for (int j = 0; j < GRID_COUNT; ++j) {
-            grid[i][j].type = 0;
-            grid[i][j].color = RGB(255, 255, 255);
-        }
-    }
-
-    for (int i = 0; i < 20; ++i) {
-        int x = rand() % GRID_COUNT;
-        int y = rand() % GRID_COUNT;
-        grid[y][x].type = 1 + rand() % 5;
-        grid[y][x].color = RGB(rand() % 256, rand() % 256, rand() % 256);
-    }
-
-    players[0] = { 0, 0, RGB(rand() % 256, rand() % 256, rand() % 256), GRID_SIZE, (Shape)(rand() % 4), 0 };
-    players[1] = { GRID_COUNT - 1, 0, RGB(rand() % 256, rand() % 256, rand() % 256), GRID_SIZE, (Shape)(rand() % 4), 0 };
-
-    goalPos = { GRID_COUNT / 2, GRID_COUNT - 1 };
-    goalColor = RGB(rand() % 256, rand() % 256, rand() % 256);
-    goalSize = GRID_SIZE;
-    goalShape = (Shape)(rand() % 4);
+// 게임 기초 세팅
+void settinggame()
+{
+	srand((unsigned)time(0));
+	r = rand() % 5;
+	for (int i =0;i<tablecount; i++)
+		for (int j = 0; j < tablecount; j++) {
+			table[i][j].check = false;
+			table[i][j].wordnumber = 0;
+		}
+	for (int i = 0; i < 5; i++) {
+		if (i == r) {
+			table[1][8 + i].wordnumber = 0;
+			table[1][8 + i].check = false;
+		}
+		else {
+			table[1][8 + i].wordnumber = words[r][i] - 'A';
+			table[1][8 + i].check = true;
+		}
+	}
+	for (int i = 3; i < tablecount-1; ++i) {
+		for (int j = 1; j < tablecount-1; ++j) {
+			int r = rand() % 10;
+			if (r == 0) {
+				table[i][j].wordnumber =rand() % 26;
+				table[i][j].check = true;
+			}
+		}
+	}
+	player.x = 10;
+	player.y = 10;
 }
 
-void DrawGrid(HDC hdc) {
-    // 각 셀의 색상 출력
-    for (int y = 0; y < GRID_COUNT; ++y) {
-        for (int x = 0; x < GRID_COUNT; ++x) {
-            HBRUSH brush = CreateSolidBrush(grid[y][x].color);
-            RECT rect = {
-                x * GRID_SIZE,
-                y * GRID_SIZE,
-                (x + 1) * GRID_SIZE,
-                (y + 1) * GRID_SIZE
-            };
-            FillRect(hdc, &rect, brush);
-            DeleteObject(brush);
-        }
-    }
 
-    // 그리드 선
-    HPEN pen = CreatePen(PS_SOLID, 1, RGB(200, 200, 200));
-    SelectObject(hdc, pen);
-    for (int i = 0; i <= GRID_COUNT; ++i) {
-        MoveToEx(hdc, i * GRID_SIZE, 0, NULL);
-        LineTo(hdc, i * GRID_SIZE, WINDOW_HEIGHT);
-        MoveToEx(hdc, 0, i * GRID_SIZE, NULL);
-        LineTo(hdc, WINDOW_WIDTH, i * GRID_SIZE);
-    }
-    DeleteObject(pen);
+
+
+void drawtable(HDC hdc)
+{
+	for (int i = 0; i < tablecount; i++) {
+		for (int j = 0; j < tablecount; j++) {
+			if (table[i][j].check == true) {
+				TCHAR ch = 'A' + table[i][j].wordnumber;
+				TextOut(hdc, ((j * cellsize) + cellsize / 2)-5, ((i * cellsize) + cellsize / 2)-5, &ch , 1);
+			}
+		}
+	}
+	for (int i = 0; i <= tablecount; i++) {
+		MoveToEx(hdc, i * cellsize, 0, NULL);
+		LineTo(hdc, i * cellsize, cellsize * tablecount);
+		MoveToEx(hdc, 0, i * cellsize, NULL);
+		LineTo(hdc, cellsize * tablecount, i * cellsize);
+	}
 }
 
-void DrawShape(HDC hdc, int x, int y, COLORREF color, int size, Shape shape) {
-    int cx = x * GRID_SIZE + GRID_SIZE / 2;
-    int cy = y * GRID_SIZE + GRID_SIZE / 2;
-    HBRUSH brush = CreateSolidBrush(color);
-    SelectObject(hdc, brush);
-
-    switch (shape) {
-    case TRIANGLE:
-    {
-        POINT pts[3] = {
-            {cx, cy - size / 2},
-            {cx - size / 2, cy + size / 2},
-            {cx + size / 2, cy + size / 2}
-        };
-        Polygon(hdc, pts, 3);
-    }
-    break;
-    case RECTANGLE:
-        Rectangle(hdc, cx - size / 2, cy - size / 2, cx + size / 2, cy + size / 2);
-        break;
-    case CIRCLE:
-        Ellipse(hdc, cx - size / 2, cy - size / 2, cx + size / 2, cy + size / 2);
-        break;
-    case ELLIPSE:
-        Ellipse(hdc, cx - size / 2, cy - size / 3, cx + size / 2, cy + size / 3);
-        break;
-    }
-    DeleteObject(brush);
+int wordnumadd(int a, int b)
+{
+	return (a + b > 25 ? a + b - 25 : a + b+1);
 }
 
 void MovePlayer(int dx, int dy) {
-    Player& p = players[currentPlayer];
-    int nx = p.x + dx;
-    int ny = p.y + dy;
-    if (nx < 0 || ny < 0 || nx >= GRID_COUNT || ny >= GRID_COUNT)
-        return;
-    if (grid[ny][nx].type == 1)
-        return;
+	int nx = player.x + dx;
+	int ny = player.y + dy;
+	if (nx < 0 || ny < 0 || nx >= tablecount || ny >= tablecount)
+		return;
+	if (table[ny][nx].check)
+		if(nx + dx < 0 || ny + dy < 0 || nx + dx >= tablecount || ny + dy >= tablecount)
+			return;
+	player.x = nx;
+	player.y = ny;
 
-    p.x = nx;
-    p.y = ny;
-
-    Cell& cell = grid[ny][nx];
-    switch (cell.type) {
-    case 2: p.color = RGB(rand() % 256, rand() % 256, rand() % 256); break;
-    case 3: p.size = (p.size > GRID_SIZE / 4) ? p.size - GRID_SIZE / 4 : p.size + GRID_SIZE / 4; break;
-    case 4: p.size = (p.size < GRID_SIZE) ? p.size + GRID_SIZE / 4 : p.size - GRID_SIZE / 4; break;
-    case 5:
-        p.shape = (Shape)(rand() % 4);
-        p.shapeTimer = 5;
-        break;
-    }
-
-    if (p.shapeTimer > 0) {
-        --p.shapeTimer;
-        if (p.shapeTimer == 0)
-            p.shape = (Shape)(rand() % 4); // 되돌리는 대신 랜덤으로
-    }
-
-    if (p.x == goalPos.x && p.y == goalPos.y && p.shape == goalShape && p.color == goalColor && p.size == goalSize) {
-        MessageBox(NULL, currentPlayer == 0 ? _T("플레이어 1 승리!") : _T("플레이어 2 승리!"), _T("게임 종료"), MB_OK);
-    }
-
-    currentPlayer = 1 - currentPlayer;
+	if (table[ny][nx].check) {
+		if (table[ny + dy][nx + dx].check) {
+			table[ny + dy][nx + dx].wordnumber = wordnumadd(table[ny + dy][nx + dx].wordnumber, table[ny][nx].wordnumber);
+		}
+		else {
+			table[ny + dy][nx + dx].wordnumber = table[ny][nx].wordnumber;
+			table[ny + dy][nx + dx].check = true;
+		}
+		table[ny][nx].check = false;
+		table[ny][nx].wordnumber = 0;
+	}
 }
 
-LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam) {
-    switch (message) {
-    case WM_CREATE:
-        InitGame();
-        break;
-    case WM_PAINT:
-    {
-        PAINTSTRUCT ps;
-        HDC hdc = BeginPaint(hWnd, &ps);
-        DrawGrid(hdc);
 
-        for (int i = 0; i < 2; ++i)
-            DrawShape(hdc, players[i].x, players[i].y, players[i].color, players[i].size, players[i].shape);
-
-        DrawShape(hdc, goalPos.x, goalPos.y, goalColor, goalSize, goalShape);
-        EndPaint(hWnd, &ps);
-    }
-    break;
-    case WM_KEYDOWN:
-        if (wParam == 'Q') PostQuitMessage(0);
-        else if (wParam == 'R') InitGame();
-        else {
-            if (currentPlayer == 0) {
-                if (wParam == 'W') MovePlayer(0, -1);
-                else if (wParam == 'A') MovePlayer(-1, 0);
-                else if (wParam == 'S') MovePlayer(0, 1);
-                else if (wParam == 'D') MovePlayer(1, 0);
-            }
-            else {
-                if (wParam == 'I') MovePlayer(0, -1);
-                else if (wParam == 'J') MovePlayer(-1, 0);
-                else if (wParam == 'K') MovePlayer(0, 1);
-                else if (wParam == 'L') MovePlayer(1, 0);
-            }
-        }
-        InvalidateRect(hWnd, NULL, TRUE);
-        break;
-    case WM_DESTROY:
-        PostQuitMessage(0);
-        break;
-    default:
-        return DefWindowProc(hWnd, message, wParam, lParam);
-    }
-    return 0;
+// 원 그리기
+void circle(HDC hdc, int x, int y, int size)
+{
+	Ellipse(hdc, x - size / 2, y - size / 2, x + size / 2, y + size / 2);
 }
 
-int APIENTRY _tWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPTSTR lpCmdLine, int nCmdShow) {
-    WNDCLASS wc = { 0 };
-    wc.lpfnWndProc = WndProc;
-    wc.hInstance = hInstance;
-    wc.hbrBackground = (HBRUSH)(COLOR_WINDOW + 1);
-    wc.lpszClassName = _T("TurnGameWindow");
-    RegisterClass(&wc);
+void drawshape(HDC hdc, int x, int y)
+{
+	int rx = cellsize / 2 + (cellsize * x);
+	int ry = cellsize / 2 + (cellsize * y);
+	HBRUSH brush = CreateSolidBrush(RGB(0,255,255));
+	SelectObject(hdc, brush);
+	circle(hdc, rx, ry, cellsize);
+	DeleteObject(brush);
+}
 
-    HWND hWnd = CreateWindow(wc.lpszClassName, _T("턴제 격자 게임"), WS_OVERLAPPEDWINDOW,
-        CW_USEDEFAULT, 0, WINDOW_WIDTH + 16, WINDOW_HEIGHT + 39, NULL, NULL, hInstance, NULL);
+bool endcheck()
+{
+	bool endchecking = true;
+	for (int i = 0; i < 5; i++) {
+		if (table[1][8 + i].wordnumber != words[r][i] - 'A' && !table[1][8+i].check)
+			endchecking = false;
+	}
+	return endchecking;
+}
 
-    ShowWindow(hWnd, nCmdShow);
-    UpdateWindow(hWnd);
-
-    MSG msg;
-    while (GetMessage(&msg, NULL, 0, 0)) {
-        TranslateMessage(&msg);
-        DispatchMessage(&msg);
-    }
-    return (int)msg.wParam;
+LRESULT CALLBACK WndProc(HWND hWnd, UINT iMessage, WPARAM wParam, LPARAM lParam)
+{
+	PAINTSTRUCT ps;
+	HDC hDC;
+	HPEN hDefPen;
+	HBRUSH hDefBrush, hRedBrush, hBlueBrush, hGreenBrush, hYellowBrush, hTurquoiseBrush;
+	RECT Now;
+	switch (iMessage) {
+	case WM_CREATE:
+		settinggame();
+		break;
+	case WM_PAINT:
+	{
+		PAINTSTRUCT ps;
+		HDC hdc = BeginPaint(hWnd, &ps);
+		drawtable(hdc);
+		drawshape(hdc, player.x, player.y);
+		if (endcheck())
+			TextOut(hdc, 0, cellsize * tablecount+10, L"단어 완성!", _tcslen(L"단어 완성!"));
+		else
+			TextOut(hdc, 0, cellsize * tablecount+10, words[r], _tcslen(words[r]));
+		EndPaint(hWnd, &ps);
+	}
+	break;
+	case WM_KEYDOWN:
+		if (!endcheck()) {
+			if (wParam == VK_UP) MovePlayer(0, -1);
+			else if (wParam == VK_LEFT) MovePlayer(-1, 0);
+			else if (wParam == VK_DOWN) MovePlayer(0, 1);
+			else if (wParam == VK_RIGHT) MovePlayer(1, 0);
+		}
+		if (wParam == 'Q')
+			PostQuitMessage(0);
+		else if (wParam == 'S')
+			settinggame();
+		InvalidateRect(hWnd, NULL, TRUE);
+		break;
+	case WM_DESTROY:
+		PostQuitMessage(0);
+		break;
+	default:
+		return DefWindowProc(hWnd, iMessage, wParam, lParam);
+	}
+	return 0;
 }

@@ -6,8 +6,8 @@
 #include <time.h>
 #include <math.h>
 
-#define tablecount 30
-#define cellsize 30
+#define tablecount 25
+#define cellsize 25
 
 HINSTANCE g_hInst;
 LPCTSTR IpszClass = L"Window Class Name";
@@ -74,7 +74,7 @@ COLORREF red = RGB(255, 0, 0);	//장애물 색
 COLORREF green = RGB(0, 255, 0); //축소 색
 COLORREF blue = RGB(0, 0, 255); //확대 색
 COLORREF black = RGB(0, 0, 0); //모양변경 색
-COLORREF colors[10];
+COLORREF colors[5];
 
 // 게임 기초 세팅
 void settinggame()
@@ -90,10 +90,10 @@ void settinggame()
 	player[0] = { 0, 0, RGB(rand() % 256, rand() % 256, rand() % 256), cellsize/4, 0, 0 };
 	player[1] = { tablecount - 1, 0, RGB(rand() % 256, rand() % 256, rand() % 256), cellsize/4, 0, 0 };
 
-	for (int i = 0; i < 10; i++) {
+	for (int i = 0; i < 5; i++) {
 		colors[i] = RGB(rand() % 256, rand() % 256, rand() % 256);
 	}
-	goalcolor = colors[rand() % 10];
+	goalcolor = colors[rand() % 5];
 	goalshape = rand() % 4 + 1;
 	goal = { tablecount / 2,tablecount - 1 };
 	table[goal.y][goal.x].type = 6;
@@ -114,7 +114,7 @@ void settinggame()
 		int y = rand() % tablecount;
 		if (table[y][x].type == 0) {
 			table[y][x].type = 2;
-			table[y][x].color = colors[rand() % 10];
+			table[y][x].color = colors[rand() % 5];
 		}
 		else
 			i--;
@@ -231,9 +231,9 @@ void MovePlayer(int dx, int dy) {
 	}
 
 	if (p.x == goal.x && p.y == goal.y && p.shape == goalshape && p.color == goalcolor && p.size == goalsize) {
-		if (!presentplayer)
+		if (presentplayer == 0)
 			ending = 0;
-		else
+		else if (presentplayer == 1)
 			ending = 1;
 	}
 
