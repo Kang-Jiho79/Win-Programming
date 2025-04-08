@@ -8,6 +8,7 @@
 
 #define tablecount 25
 #define cellsize 25
+#define maxcell 10
 
 HINSTANCE g_hInst;
 LPCTSTR IpszClass = L"Window Class Name";
@@ -48,6 +49,7 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevlnstance, LPSTR lpszCmdPa
 	return Message.wParam;
 }
 
+
 struct Cell {
 	int shapetype;	// 0 : 비어있음 1 : 원 2 : 삼각형 3 ; 사각형
 	int x, y;
@@ -55,138 +57,40 @@ struct Cell {
 	COLORREF color;
 };
 
-Player player[2];
+Cell player;
+Cell cell[10];
 int presentplayer = 0;
-Cell table[tablecount][tablecount];
-int goalsize;
-int goalshape;
-COLORREF goalcolor;
-POINT goal;
-int ending = 2;
+int cellcount = 0;
 
-COLORREF red = RGB(255, 0, 0);	//장애물 색
-COLORREF green = RGB(0, 255, 0); //축소 색
-COLORREF blue = RGB(0, 0, 255); //확대 색
-COLORREF black = RGB(0, 0, 0); //모양변경 색
-COLORREF colors[5];
+COLORREF colors[4];
+
+bool circlecheck = false;
+COLORREF circlecolor;
+bool trianglecheck = false;
+COLORREF trianglecolor;
+bool squarecheck = false;
+COLORREF squarecolor;
 
 // 게임 기초 세팅
 void settinggame()
 {
-	srand((unsigned)time(0));
-	ending = 2;
-	for (int i = 0; i < tablecount; ++i) {
-		for (int j = 0; j < tablecount; ++j) {
-			table[i][j].type = 0;
-			table[i][j].color = RGB(255, 255, 255);
-		}
+	srand(unsigned(time(NULL)));
+	player.shapetype = 0;
+	presentplayer = 0;
+	for (int i = 0; i < maxcell; i++) {
+		cell[i].shapetype = 0;
 	}
-	player[0] = { 0, 0, RGB(rand() % 256, rand() % 256, rand() % 256), cellsize / 4, 0, 0 };
-	player[1] = { tablecount - 1, 0, RGB(rand() % 256, rand() % 256, rand() % 256), cellsize / 4, 0, 0 };
-
-	for (int i = 0; i < 5; i++) {
+	cellcount = 0;
+	for (int i = 0; i < 4; i++) {
 		colors[i] = RGB(rand() % 256, rand() % 256, rand() % 256);
 	}
-	goalcolor = colors[rand() % 5];
-	goalshape = rand() % 4 + 1;
-	goal = { tablecount / 2,tablecount - 1 };
-	table[goal.y][goal.x].type = 6;
-	goalsize = (rand() % 4 + 1) * cellsize / 4;
-
-	for (int i = 0; i < 20; ++i) {
-		int x = rand() % tablecount;
-		int y = rand() % tablecount;
-		if (table[y][x].type == 0) {
-			table[y][x].type = 1;
-			table[y][x].color = red;
-		}
-		else
-			i--;
-	}
-	for (int i = 0; i < 20; ++i) {
-		int x = rand() % tablecount;
-		int y = rand() % tablecount;
-		if (table[y][x].type == 0) {
-			table[y][x].type = 2;
-			table[y][x].color = colors[rand() % 5];
-		}
-		else
-			i--;
-	}
-	for (int i = 0; i < 20; ++i) {
-		int x = rand() % tablecount;
-		int y = rand() % tablecount;
-		if (table[y][x].type == 0) {
-			table[y][x].type = 3;
-			table[y][x].color = green;
-		}
-		else
-			i--;
-	}
-	for (int i = 0; i < 20; ++i) {
-		int x = rand() % tablecount;
-		int y = rand() % tablecount;
-		if (table[y][x].type == 0) {
-			table[y][x].type = 4;
-			table[y][x].color = blue;
-		}
-		else
-			i--;
-	}
-	for (int i = 0; i < 20; ++i) {
-		int x = rand() % tablecount;
-		int y = rand() % tablecount;
-		if (table[y][x].type == 0) {
-			table[y][x].type = 5;
-			table[y][x].color = black;
-		}
-		else
-			i--;
-	}
-	table[goal.x - 1][goal.y - 1].type = 2;
-	table[goal.x - 1][goal.y - 1].color = goalcolor;
-}
-
-// 40 x 40 바닥칠하기
-void floor(HDC hdc, int x, int y)
-{
-	int rx = cellsize / 2 + (cellsize * x);
-	int ry = cellsize / 2 + (cellsize * y);
-	Rectangle(hdc, rx - cellsize / 2, ry - cellsize / 2, rx + cellsize / 2, ry + cellsize / 2);
-}
-
-// 40 x 40 윗화살표 그리기
-void uparrow(HDC hdc, int x, int y)
-{
-	int rx = cellsize / 2 + (cellsize * x);
-	int ry = cellsize / 2 + (cellsize * y);
-	POINT point[8] = { {rx,ry - cellsize / 2},{rx - cellsize / 2,ry},{rx - cellsize / 4,ry},{rx - cellsize / 4,ry + cellsize / 2},{rx + cellsize / 4,ry + cellsize / 2},{rx + cellsize / 4,ry},{rx + cellsize / 2,ry},{rx,ry - cellsize / 2} };
-	Polygon(hdc, point, 8);
-}
-
-// 40 x 40 아래화살표 그리기
-void downarrow(HDC hdc, int x, int y)
-{
-	int rx = cellsize / 2 + (cellsize * x);
-	int ry = cellsize / 2 + (cellsize * y);
-	POINT point[8] = { {rx,ry + cellsize / 2},{rx - cellsize / 2,ry},{rx - cellsize / 4,ry},{rx - cellsize / 4,ry - cellsize / 2},{rx + cellsize / 4,ry - cellsize / 2},{rx + cellsize / 4,ry},{rx + cellsize / 2,ry},{rx,ry + cellsize / 2} };
-	Polygon(hdc, point, 8);
+	circlecolor = RGB(rand() % 256, rand() % 256, rand() % 256);
+	trianglecolor = RGB(rand() % 256, rand() % 256, rand() % 256);
+	squarecolor = RGB(rand() % 256, rand() % 256, rand() % 256);
 }
 
 void drawtable(HDC hdc)
 {
-	for (int y = 0; y < tablecount; y++) {
-		for (int x = 0; x < tablecount; x++) {
-			HBRUSH brush = CreateSolidBrush(table[y][x].color);
-			SelectObject(hdc, brush);
-			floor(hdc, x, y);
-			DeleteObject(brush);
-			if (table[y][x].type == 3)
-				downarrow(hdc, x, y);
-			else if (table[y][x].type == 4)
-				uparrow(hdc, x, y);
-		}
-	}
 	for (int i = 0; i <= tablecount; i++) {
 		MoveToEx(hdc, i * cellsize, 0, NULL);
 		LineTo(hdc, i * cellsize, cellsize * tablecount);
@@ -195,56 +99,87 @@ void drawtable(HDC hdc)
 	}
 }
 
-void MovePlayer(int dx, int dy) {
-	Player& p = player[presentplayer];
-	int nx = p.x + dx;
-	int ny = p.y + dy;
-	if (nx < 0 || ny < 0 || nx >= tablecount || ny >= tablecount)
+void selectplayer(int i)
+{
+	if (cell[i].shapetype == 0)
 		return;
-	if (table[ny][nx].type == 1)
-		return;
-
-	p.x = nx;
-	p.y = ny;
-
-	Cell& cell = table[ny][nx];
-	switch (cell.type) {
-	case 2: p.color = cell.color; break;
-	case 3: p.size = (p.size > cellsize / 4) ? p.size - cellsize / 4 : cellsize; break;
-	case 4: p.size = (p.size < cellsize) ? p.size + cellsize / 4 : cellsize / 4; break;
-	case 5:
-		p.shape = rand() % 4 + 1;
-		p.shapeTimer = 10;
-		break;
+	if (player.shapetype != 0) {
+		cell[presentplayer] = player;
 	}
-
-	if (p.shapeTimer > 0) {
-		--p.shapeTimer;
-		if (p.shapeTimer == 0)
-			p.shape = 0; // 되돌리는 대신 랜덤으로
-	}
-
-	if (p.x == goal.x && p.y == goal.y && p.shape == goalshape && p.color == goalcolor && p.size == goalsize) {
-		if (presentplayer == 0)
-			ending = 0;
-		else if (presentplayer == 1)
-			ending = 1;
-	}
-
-	presentplayer = 1 - presentplayer;
+	player = cell[i];
+	presentplayer = i;
+	cell[i].shapetype = 0;
 }
 
+void MovePlayer(int dx, int dy) {
+	int nx = player.x + dx;
+	int ny = player.y + dy;
+	if (nx < 0) {
+		nx = tablecount - 1;
+	}
+	else if (nx >= tablecount)
+		nx = 1;
+	if (ny < 0) {
+		ny = tablecount - 1;
+	}
+	else if (ny >= tablecount)
+		ny = 1;
+	player.x = nx;
+	player.y = ny;
+}
+
+void changecolor()
+{
+	switch (player.shapetype)
+	{
+	case 0:
+		return;
+	case 1:
+		circlecheck = !circlecheck;
+		break;
+	case 2:
+		trianglecheck = !trianglecheck;
+		break;
+	case 3:
+		squarecheck = !squarecheck;
+		break;
+	default:
+		break;
+	}
+}
+
+void sizeup()
+{
+	if (player.shapetype == 0)
+		return;
+	if (player.size >= cellsize * 5)
+		return;
+	player.size += cellsize;
+}
+
+void sizedown()
+{
+	if (player.shapetype == 0)
+		return;
+	if (player.size <= cellsize)
+		return;
+	player.size -= cellsize;
+}
+
+void deletecell()
+{
+	player.shapetype = 0;
+	for (int i = presentplayer; i < maxcell - 1; i++)
+		cell[i] = cell[i + 1];
+	presentplayer = 0;
+}
 
 // 원 그리기
 void circle(HDC hdc, int x, int y, int size)
 {
 	Ellipse(hdc, x - size / 2, y - size / 2, x + size / 2, y + size / 2);
 }
-// 타원 그리기
-void oval(HDC hdc, int x, int y, int size)
-{
-	Ellipse(hdc, x - size / 2, y - size / 3, x + size / 2, y + size / 3);
-}
+
 // 사각형 그리기
 void square(HDC hdc, int x, int y, int size)
 {
@@ -256,56 +191,138 @@ void triangle(HDC hdc, int x, int y, int size)
 	POINT point[3] = { {x,y - size * 2 / 3}, {x - size / 2, y + size / 3},{x + size / 2, y + size / 3} };
 	Polygon(hdc, point, 3);
 }
-// 모레시계 그리기 player 1
-void sandglass(HDC hdc, int x, int y, int size)
-{
-	POINT point[6] = { {x,y},{x - size / 2,y - size / 2},{x + size / 2,y - size / 2},{x,y},{x + size / 2,y + size / 2},{x - size / 2,y + size / 2} };
-	Polygon(hdc, point, 6);
-}
 
-// 오각형 그리기 player 2
-void pentagon(HDC hdc, int x, int y, int size)
+
+// 셀 설정
+void selectcircle()
 {
-	double pi = 3.14;
-	int r = size * 3 / 5;
-	POINT point[5];
-	for (int i = 0; i < 5; i++) {
-		double angle = -pi / 2 + i * (2 * pi / 5);
-		point[i].x = (x + r * cos(angle));
-		point[i].y = (y + r * sin(angle));
+	if (cellcount == 10) {
+		for (int i = 0; i < maxcell - 1; i++)
+			cell[i] = cell[i + 1];
+		cellcount = 9;
 	}
-	Polygon(hdc, point, 5);
+	cell[cellcount].shapetype = 1;
+	cell[cellcount].color = colors[rand() % 4];
+	bool check = true;
+	while (check)
+	{
+		check = false;
+		cell[cellcount].x = rand() % tablecount;
+		cell[cellcount].y = rand() % tablecount;
+		for (int i = 0; i < cellcount; i++) {
+			if (cell[cellcount].x == cell[i].x && cell[cellcount].y == cell[i].y)
+				check = true;
+		}
+	}
+	cell[cellcount].size = maxcell;
+	cellcount++;
 }
 
-void drawshape(HDC hdc, int x, int y, COLORREF color, int size, int shape, int now)
+void selecttriangle()
 {
-	int rx = cellsize / 2 + (cellsize * x);
-	int ry = cellsize / 2 + (cellsize * y);
-	HBRUSH brush = CreateSolidBrush(color);
-	SelectObject(hdc, brush);
-	switch (shape)
+	if (cellcount == 10) {
+		for (int i = 0; i < maxcell - 1; i++)
+			cell[i] = cell[i + 1];
+		cellcount = 9;
+	}
+	cell[cellcount].shapetype = 2;
+	cell[cellcount].color = colors[rand() % 4];
+	bool check = true;
+	while (check)
 	{
-	case 0:
-		if (!now)
-			sandglass(hdc, rx, ry, size);
-		else
-			pentagon(hdc, rx, ry, size);
+		check = false;
+		cell[cellcount].x = rand() % tablecount;
+		cell[cellcount].y = rand() % tablecount;
+		for (int i = 0; i < cellcount; i++) {
+			if (cell[cellcount].x == cell[i].x && cell[cellcount].y == cell[i].y)
+				check = true;
+		}
+	}
+	cell[cellcount].size = maxcell;
+	cellcount++;
+}
+
+void selectsquare()
+{
+	if (cellcount == 10) {
+		for (int i = 0; i < maxcell - 1; i++)
+			cell[i] = cell[i + 1];
+		cellcount = 9;
+	}
+	cell[cellcount].shapetype = 3;
+	cell[cellcount].color = colors[rand() % 4];
+	bool check = true;
+	while (check)
+	{
+		check = false;
+		cell[cellcount].x = rand() % tablecount;
+		cell[cellcount].y = rand() % tablecount;
+		for (int i = 0; i < cellcount; i++) {
+			if (cell[cellcount].x == cell[i].x && cell[cellcount].y == cell[i].y)
+				check = true;
+		}
+	}
+	cell[cellcount].size = maxcell;
+	cellcount++;
+}
+
+void drawshape(HDC hdc, Cell cell)
+{
+	if (cell.shapetype == 0)
+		return;
+	int rx = cellsize / 2 + (cellsize * cell.x);
+	int ry = cellsize / 2 + (cellsize * cell.y);
+	switch (cell.shapetype)
+	{
+	case 1: {
+		if (circlecheck) {
+			HBRUSH brush = CreateSolidBrush(circlecolor);
+			SelectObject(hdc, brush);
+			circle(hdc, rx, ry, cell.size);
+			DeleteObject(brush);
+		}
+		else {
+			HBRUSH brush = CreateSolidBrush(cell.color);
+			SelectObject(hdc, brush);
+			circle(hdc, rx, ry, cell.size);
+			DeleteObject(brush);
+		}
+	}
 		break;
-	case 1:
-		triangle(hdc, rx, ry, size);
+	case 2: {
+		if (trianglecheck) {
+			HBRUSH brush = CreateSolidBrush(trianglecolor);
+			SelectObject(hdc, brush);
+			triangle(hdc, rx, ry, cell.size);
+			DeleteObject(brush);
+		}
+		else {
+			HBRUSH brush = CreateSolidBrush(cell.color);
+			SelectObject(hdc, brush);
+			triangle(hdc, rx, ry, cell.size);
+			DeleteObject(brush);
+		}
+	}
 		break;
-	case 2:
-		square(hdc, rx, ry, size);
-		break;
-	case 3:
-		circle(hdc, rx, ry, size);
-		break;
-	case 4:
-		oval(hdc, rx, ry, size);
+	case 3: {
+		if (squarecheck) {
+			HBRUSH brush = CreateSolidBrush(squarecolor);
+			SelectObject(hdc, brush);
+			square(hdc, rx, ry, cell.size);
+			DeleteObject(brush);
+		}
+		else {
+			HBRUSH brush = CreateSolidBrush(cell.color);
+			SelectObject(hdc, brush);
+			square(hdc, rx, ry, cell.size);
+			DeleteObject(brush);
+		}
+	}
 		break;
 	default:
 		break;
 	}
+
 }
 
 
@@ -326,40 +343,41 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT iMessage, WPARAM wParam, LPARAM lParam)
 		PAINTSTRUCT ps;
 		HDC hdc = BeginPaint(hWnd, &ps);
 		drawtable(hdc);
-
-		for (int i = 0; i < 2; ++i)
-			drawshape(hdc, player[i].x, player[i].y, player[i].color, player[i].size, player[i].shape, i);
-
-		drawshape(hdc, goal.x, goal.y, goalcolor, goalsize, goalshape, 0);
-		if (ending == 0)
-			TextOut(hdc, 0, cellsize * tablecount, L"player1 승리", 10);
-		else if (ending == 1)
-			TextOut(hdc, 0, cellsize * tablecount, L"player2 승리", 10);
+		for (int i = 0; i < 10; ++i)
+			drawshape(hdc, cell[i]);
+		drawshape(hdc, player);
 		EndPaint(hWnd, &ps);
 	}
 	break;
 	case WM_KEYDOWN:
-		if (ending == 2) {
-			if (wParam == 'Q')
-				PostQuitMessage(0);
-			else {
-				if (presentplayer == 0) {
-					if (wParam == 'W') MovePlayer(0, -1);
-					else if (wParam == 'A') MovePlayer(-1, 0);
-					else if (wParam == 'S') MovePlayer(0, 1);
-					else if (wParam == 'D') MovePlayer(1, 0);
-				}
-				else {
-					if (wParam == 'I') MovePlayer(0, -1);
-					else if (wParam == 'J') MovePlayer(-1, 0);
-					else if (wParam == 'K') MovePlayer(0, 1);
-					else if (wParam == 'L') MovePlayer(1, 0);
-				}
-			}
-		}
-		else if (wParam == 'R')
-			settinggame();
+
+		if (wParam == 'Q')
+			PostQuitMessage(0);
+		else if (wParam == VK_UP) MovePlayer(0, -1);
+		else if (wParam == VK_LEFT) MovePlayer(-1, 0);
+		else if (wParam == VK_DOWN) MovePlayer(0, 1);
+		else if (wParam == VK_RIGHT) MovePlayer(1, 0);
+		else if (wParam == 'P') settinggame();
+		else if (wParam == 'E') selectcircle();
+		else if (wParam == 'T') selecttriangle();
+		else if (wParam == 'R') selectsquare();
+		else if (wParam == 'C') changecolor();
+		else if (wParam == 'D') deletecell();
+		else if (wParam == '0') selectplayer(0);
+		else if (wParam == '1') selectplayer(1);
+		else if (wParam == '2') selectplayer(2);
+		else if (wParam == '3') selectplayer(3);
+		else if (wParam == '4') selectplayer(4);
+		else if (wParam == '5') selectplayer(5);
+		else if (wParam == '6') selectplayer(6);
+		else if (wParam == '7') selectplayer(7);
+		else if (wParam == '8') selectplayer(8);
+		else if (wParam == '9') selectplayer(9);
 		InvalidateRect(hWnd, NULL, TRUE);
+		break;
+	case WM_CHAR:
+		if (wParam == '+') sizeup();
+		else if (wParam == '-') sizedown();
 		break;
 	case WM_DESTROY:
 		PostQuitMessage(0);
