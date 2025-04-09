@@ -363,16 +363,16 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT iMessage, WPARAM wParam, LPARAM lParam)
 		else if (wParam == 'R') selectsquare();
 		else if (wParam == 'C') changecolor();
 		else if (wParam == 'D') deletecell();
-		else if (wParam == '0') selectplayer(0);
-		else if (wParam == '1') selectplayer(1);
-		else if (wParam == '2') selectplayer(2);
-		else if (wParam == '3') selectplayer(3);
-		else if (wParam == '4') selectplayer(4);
-		else if (wParam == '5') selectplayer(5);
-		else if (wParam == '6') selectplayer(6);
-		else if (wParam == '7') selectplayer(7);
-		else if (wParam == '8') selectplayer(8);
-		else if (wParam == '9') selectplayer(9);
+		else if (wParam == '0') selectplayer(9);
+		else if (wParam == '1') selectplayer(0);
+		else if (wParam == '2') selectplayer(1);
+		else if (wParam == '3') selectplayer(2);
+		else if (wParam == '4') selectplayer(3);
+		else if (wParam == '5') selectplayer(4);
+		else if (wParam == '6') selectplayer(5);
+		else if (wParam == '7') selectplayer(6);
+		else if (wParam == '8') selectplayer(7);
+		else if (wParam == '9') selectplayer(8);
 		InvalidateRect(hWnd, NULL, TRUE);
 		break;
 	case WM_CHAR:
