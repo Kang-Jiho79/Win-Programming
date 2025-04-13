@@ -1,4 +1,4 @@
-﻿//실습 12번
+﻿//실습 14번
 #define _CRT_SECURE_NO_WARNINGS
 #include <windows.h>
 #include <tchar.h>
@@ -192,6 +192,13 @@ void triangle(HDC hdc, int x, int y, int size)
 	Polygon(hdc, point, 3);
 }
 
+// 모레시계 그리기
+void sandglass(HDC hdc, int x, int y, int size)
+{
+	POINT point[6] = { {x,y},{x - size / 2,y - size / 2},{x + size / 2,y - size / 2},{x,y},{x + size / 2,y + size / 2},{x - size / 2,y + size / 2} };
+	Polygon(hdc, point, 6);
+}
+
 
 // 셀 설정
 void selectcircle()
@@ -270,6 +277,7 @@ void drawshape(HDC hdc, Cell cell)
 {
 	if (cell.shapetype == 0)
 		return;
+
 	int rx = cellsize / 2 + (cellsize * cell.x);
 	int ry = cellsize / 2 + (cellsize * cell.y);
 	switch (cell.shapetype)
@@ -278,7 +286,7 @@ void drawshape(HDC hdc, Cell cell)
 		if (circlecheck) {
 			HBRUSH brush = CreateSolidBrush(circlecolor);
 			SelectObject(hdc, brush);
-			circle(hdc, rx, ry, cell.size);
+			sandglass(hdc, rx, ry, cell.size);
 			DeleteObject(brush);
 		}
 		else {
@@ -293,7 +301,7 @@ void drawshape(HDC hdc, Cell cell)
 		if (trianglecheck) {
 			HBRUSH brush = CreateSolidBrush(trianglecolor);
 			SelectObject(hdc, brush);
-			triangle(hdc, rx, ry, cell.size);
+			sandglass(hdc, rx, ry, cell.size);
 			DeleteObject(brush);
 		}
 		else {
@@ -308,7 +316,7 @@ void drawshape(HDC hdc, Cell cell)
 		if (squarecheck) {
 			HBRUSH brush = CreateSolidBrush(squarecolor);
 			SelectObject(hdc, brush);
-			square(hdc, rx, ry, cell.size);
+			sandglass(hdc, rx, ry, cell.size);
 			DeleteObject(brush);
 		}
 		else {
@@ -323,6 +331,70 @@ void drawshape(HDC hdc, Cell cell)
 		break;
 	}
 
+}
+
+void drawplayer(HDC hdc, Cell cell)
+{
+	if (cell.shapetype == 0)
+		return;
+	
+	HPEN pen = CreatePen(PS_SOLID, 3, BLACK_PEN);
+	SelectObject(hdc, pen);
+	
+
+	int rx = cellsize / 2 + (cellsize * cell.x);
+	int ry = cellsize / 2 + (cellsize * cell.y);
+	switch (cell.shapetype)
+	{
+	case 1: {
+		if (circlecheck) {
+			HBRUSH brush = CreateSolidBrush(circlecolor);
+			SelectObject(hdc, brush);
+			sandglass(hdc, rx, ry, cell.size);
+			DeleteObject(brush);
+		}
+		else {
+			HBRUSH brush = CreateSolidBrush(cell.color);
+			SelectObject(hdc, brush);
+			circle(hdc, rx, ry, cell.size);
+			DeleteObject(brush);
+		}
+	}
+		  break;
+	case 2: {
+		if (trianglecheck) {
+			HBRUSH brush = CreateSolidBrush(trianglecolor);
+			SelectObject(hdc, brush);
+			sandglass(hdc, rx, ry, cell.size);
+			DeleteObject(brush);
+		}
+		else {
+			HBRUSH brush = CreateSolidBrush(cell.color);
+			SelectObject(hdc, brush);
+			triangle(hdc, rx, ry, cell.size);
+			DeleteObject(brush);
+		}
+	}
+		  break;
+	case 3: {
+		if (squarecheck) {
+			HBRUSH brush = CreateSolidBrush(squarecolor);
+			SelectObject(hdc, brush);
+			sandglass(hdc, rx, ry, cell.size);
+			DeleteObject(brush);
+		}
+		else {
+			HBRUSH brush = CreateSolidBrush(cell.color);
+			SelectObject(hdc, brush);
+			square(hdc, rx, ry, cell.size);
+			DeleteObject(brush);
+		}
+	}
+		  break;
+	default:
+		break;
+	}
+	DeleteObject(pen);
 }
 
 
@@ -345,7 +417,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT iMessage, WPARAM wParam, LPARAM lParam)
 		drawtable(hdc);
 		for (int i = 0; i < 10; ++i)
 			drawshape(hdc, cell[i]);
-		drawshape(hdc, player);
+		drawplayer(hdc, player);
 		EndPaint(hWnd, &ps);
 	}
 	break;

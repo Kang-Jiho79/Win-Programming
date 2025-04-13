@@ -1,13 +1,19 @@
-﻿//실습 12번
+﻿//실습 15번
 #define _CRT_SECURE_NO_WARNINGS
 #include <windows.h>
 #include <tchar.h>
 #include <stdlib.h>
 #include <time.h>
 #include <math.h>
+#include <sstream>
+#include <string>
+#include <iostream>
+using namespace std;
 
-#define tablecount 25
-#define cellsize 25
+#define max_x 800
+#define max_y 600
+#define shapecount 5
+#define size 30
 
 HINSTANCE g_hInst;
 LPCTSTR IpszClass = L"Window Class Name";
@@ -48,229 +54,99 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevlnstance, LPSTR lpszCmdPa
 	return Message.wParam;
 }
 
-struct Player {
+struct Shape 
+{
 	int x, y;
-	COLORREF color;
-	int size; 
-	int shape;
-	int shapeTimer;
+	int type;
+	int thickness;
+	COLORREF inner, line;
 };
 
-struct Cell {
-	int type; // 0: 일반, 1: 장애물, 2: 색상 변경, 3: 축소, 4: 확대, 5: 모양 변경, 6: 목표 지점
-	COLORREF color;
-};
+Shape shape[5];
+WCHAR errormessage[20] = L"에러 발생!";
+bool errorcheck = false;
+wstring status[shapecount];
+WCHAR Input[30];
+int inputcount = 0;
+int now = 0;
+wstring Inputresult[6];
 
-Player player[2];
-int presentplayer = 0;
-Cell table[tablecount][tablecount];
-int goalsize;
-int goalshape;
-COLORREF goalcolor;
-POINT goal;
-int ending = 2;
-
-COLORREF red = RGB(255, 0, 0);	//장애물 색
-COLORREF green = RGB(0, 255, 0); //축소 색
-COLORREF blue = RGB(0, 0, 255); //확대 색
-COLORREF black = RGB(0, 0, 0); //모양변경 색
-COLORREF colors[5];
+void Inputcheck()
+{
+	wstringstream ss(Input);
+	wstring w;
+	for (int i = 0; i < 6; i++) {
+		wstring word = w;
+		Inputresult[i] = w;
+	}
+	if (stoi(Inputresult[0]) == 2 || stoi(Inputresult[0]) == 3 || stoi(Inputresult[0]) == 4 || stoi(Inputresult[0]) == 5 || stoi(Inputresult[0]) == 6) {
+		if (stoi(Inputresult[1]) >= 0 && stoi(Inputresult[2]) >= 0 && stoi(Inputresult[3]) >= 0 && stoi(Inputresult[4]) >= 0 && stoi(Inputresult[1]) <= max_x && stoi(Inputresult[1]) >= 0 && stoi(Inputresult[3]) <= max_x && stoi(Inputresult[2]) <= max_y && stoi(Inputresult[4]) >= max_y) {
+			if (stoi(Inputresult[5]) >= 1 && stoi(Inputresult[5]) <= 10) {
+				for (int i = 0; i < shapecount; i++) {
+					if (shape[i].type == 0) {
+						int x1 = stoi(Inputresult[1]), x2 = stoi(Inputresult[3]);
+						int y1 = stoi(Inputresult[2]), y2 = stoi(Inputresult[4]);
+						shape[i].type = stoi(Inputresult[0]);
+						shape[i].x = rand() % (x1 > x2 ? (x1 - x2 + 1) + x2 : (x2 - x1 + 1) + x1);
+						shape[i].y = rand() % (y1 > y2 ? (y1 - y2 + 1) + y2 : (y2 - y1 + 1) + y1);
+						shape[i].thickness = stoi(Inputresult[5]);
+						status[i] += L"shape : " + i;
+						status[i] += L" X : " + shape[i].x;
+						status[i] += L" Y : " + shape[i].y;
+						status[i] += L" WIDTH : " + shape[i].thickness;
+						return;
+					}
+				}
+				
+			}
+		}
+	}
+	errorcheck = true;
+	return;
+}
 
 // 게임 기초 세팅
 void settinggame()
 {
 	srand((unsigned)time(0));
-	ending = 2;
-	for (int i = 0; i < tablecount; ++i) {
-		for (int j = 0; j < tablecount; ++j) {
-			table[i][j].type = 0;
-			table[i][j].color = RGB(255, 255, 255);
-		}
-	}
-	player[0] = { 0, 0, RGB(rand() % 256, rand() % 256, rand() % 256), cellsize/4, 0, 0 };
-	player[1] = { tablecount - 1, 0, RGB(rand() % 256, rand() % 256, rand() % 256), cellsize/4, 0, 0 };
-
-	for (int i = 0; i < 5; i++) {
-		colors[i] = RGB(rand() % 256, rand() % 256, rand() % 256);
-	}
-	goalcolor = colors[rand() % 5];
-	goalshape = rand() % 4 + 1;
-	goal = { tablecount / 2,tablecount - 1 };
-	table[goal.y][goal.x].type = 6;
-	goalsize = (rand() % 4 + 1) * cellsize/4;
-
-	for (int i = 0; i < 20; ++i) {
-		int x = rand() % tablecount;
-		int y = rand() % tablecount;
-		if (table[y][x].type == 0) {
-			table[y][x].type = 1;
-			table[y][x].color = red;
-		}
-		else
-			i--;
-	}
-	for (int i = 0; i < 20; ++i) {
-		int x = rand() % tablecount;
-		int y = rand() % tablecount;
-		if (table[y][x].type == 0) {
-			table[y][x].type = 2;
-			table[y][x].color = colors[rand() % 5];
-		}
-		else
-			i--;
-	}
-	for (int i = 0; i < 20; ++i) {
-		int x = rand() % tablecount;
-		int y = rand() % tablecount;
-		if (table[y][x].type == 0) {
-			table[y][x].type = 3;
-			table[y][x].color = green;
-		}
-		else
-			i--;
-	}
-	for (int i = 0; i < 20; ++i) {
-		int x = rand() % tablecount;
-		int y = rand() % tablecount;
-		if (table[y][x].type == 0) {
-			table[y][x].type = 4;
-			table[y][x].color = blue;
-		}
-		else
-			i--;
-	}
-	for (int i = 0; i < 20; ++i) {
-		int x = rand() % tablecount;
-		int y = rand() % tablecount;
-		if (table[y][x].type == 0) {
-			table[y][x].type = 5;
-			table[y][x].color = black;
-		}
-		else
-			i--;
-	}
-	table[goal.x - 1][goal.y-1].type = 2;
-	table[goal.x - 1][goal.y-1].color = goalcolor;
-}
-
-// 40 x 40 바닥칠하기
-void floor(HDC hdc, int x, int y)
-{
-	int rx = cellsize / 2 + (cellsize * x);
-	int ry = cellsize / 2 + (cellsize * y);
-	Rectangle(hdc, rx - cellsize / 2, ry - cellsize / 2, rx + cellsize / 2, ry + cellsize / 2);
-}
-
-// 40 x 40 윗화살표 그리기
-void uparrow(HDC hdc, int x, int y)
-{
-	int rx = cellsize/2 + (cellsize * x);
-	int ry = cellsize / 2 + (cellsize  * y);
-	POINT point[8] = { {rx,ry - cellsize / 2},{rx - cellsize / 2,ry},{rx - cellsize / 4,ry},{rx - cellsize / 4,ry + cellsize / 2},{rx + cellsize / 4,ry + cellsize / 2},{rx + cellsize / 4,ry},{rx + cellsize / 2,ry},{rx,ry - cellsize / 2} };
-	Polygon(hdc, point, 8);
-}
-
-// 40 x 40 아래화살표 그리기
-void downarrow(HDC hdc, int x, int y)
-{
-	int rx = cellsize / 2 + (cellsize * x);
-	int ry = cellsize / 2 + (cellsize * y);
-	POINT point[8] = { {rx,ry + cellsize / 2},{rx - cellsize / 2,ry},{rx - cellsize / 4,ry},{rx - cellsize / 4,ry - cellsize / 2},{rx + cellsize / 4,ry - cellsize / 2},{rx + cellsize / 4,ry},{rx + cellsize / 2,ry},{rx,ry + cellsize / 2} };
-	Polygon(hdc, point, 8);
-}
-
-void drawtable(HDC hdc)
-{
-	for (int y = 0; y < tablecount; y++) {
-		for (int x = 0; x < tablecount; x++) {
-			HBRUSH brush = CreateSolidBrush(table[y][x].color);
-			SelectObject(hdc, brush);
-			floor(hdc, x, y);
-			DeleteObject(brush);
-			if (table[y][x].type == 3)
-				downarrow(hdc, x, y);
-			else if (table[y][x].type == 4)
-				uparrow(hdc, x, y);
-		}
-	}
-	for (int i = 0; i <= tablecount; i++) {
-		MoveToEx(hdc, i * cellsize, 0, NULL);
-		LineTo(hdc, i * cellsize, cellsize * tablecount);
-		MoveToEx(hdc, 0, i * cellsize, NULL);
-		LineTo(hdc, cellsize * tablecount, i * cellsize);
+	for (int i = 0; i < shapecount; i++) {
+		shape[i].type = 0;
+		shape[i].inner = RGB(rand() % 256, rand() % 256, rand() % 256);
+		shape[i].line = RGB(rand() % 256, rand() % 256, rand() % 256);
 	}
 }
 
-void MovePlayer(int dx, int dy) {
-	Player& p = player[presentplayer];
-	int nx = p.x + dx;
-	int ny = p.y + dy;
-	if (nx < 0 || ny < 0 || nx >= tablecount || ny >= tablecount)
+void MovePlayer(int dx, int dy,int now) {
+	if (shape[now].type == 0)
 		return;
-	if (table[ny][nx].type == 1)
+	int nx = shape[now].x + dx;
+	int ny = shape[now].y + dy;
+	if (nx < 0 || ny < 0 || nx >=  max_x|| ny >= max_y)
 		return;
 
-	p.x = nx;
-	p.y = ny;
-
-	Cell& cell = table[ny][nx];
-	switch (cell.type) {
-	case 2: p.color = cell.color; break;
-	case 3: p.size = (p.size > cellsize / 4) ? p.size - cellsize / 4 : cellsize; break;
-	case 4: p.size = (p.size < cellsize) ? p.size + cellsize / 4 : cellsize / 4; break;
-	case 5:
-		p.shape = rand() % 4 + 1;
-		p.shapeTimer = 10;
-		break;
-	}
-
-	if (p.shapeTimer > 0) {
-		--p.shapeTimer;
-		if (p.shapeTimer == 0)
-			p.shape = 0; // 되돌리는 대신 랜덤으로
-	}
-
-	if (p.x == goal.x && p.y == goal.y && p.shape == goalshape && p.color == goalcolor && p.size == goalsize) {
-		if (presentplayer == 0)
-			ending = 0;
-		else if (presentplayer == 1)
-			ending = 1;
-	}
-
-	presentplayer = 1 - presentplayer;
+	shape[now].x = nx;
+	shape[now].y = ny;
 }
 
-
-// 원 그리기
-void circle(HDC hdc, int x, int y, int size)
+void drawline(HDC hdc, int x, int y)
 {
-	Ellipse(hdc, x - size/2, y - size / 2, x + size / 2, y + size / 2);
-}
-// 타원 그리기
-void oval(HDC hdc, int x, int y, int size)
-{
-	Ellipse(hdc, x - size / 2, y - size / 3, x + size / 2, y + size / 3);
+	MoveToEx(hdc, x-size, y-size, NULL);
+	LineTo(hdc, x+size, y+size);
 }
 // 사각형 그리기
-void square(HDC hdc, int x, int y, int size)
+void square(HDC hdc, int x, int y)
 {
 	Rectangle(hdc, x - size / 2, y - size / 2, x + size / 2, y + size / 2);
 }
 // 삼각형 그리기
-void triangle(HDC hdc, int x, int y, int size)
+void triangle(HDC hdc, int x, int y)
 {
 	POINT point[3] = { {x,y - size * 2/3}, {x - size / 2, y + size /3},{x + size / 2, y + size / 3} };
 	Polygon(hdc, point, 3);
 }
-// 모레시계 그리기 player 1
-void sandglass(HDC hdc, int x, int y, int size)
-{
-	POINT point[6] = { {x,y},{x - size / 2,y - size / 2},{x + size / 2,y - size / 2},{x,y},{x + size / 2,y + size / 2},{x - size / 2,y + size / 2}};
-	Polygon(hdc, point, 6);
-}
 
-// 오각형 그리기 player 2
-void pentagon(HDC hdc, int x, int y, int size)
+// 오각형 그리기
+void pentagon(HDC hdc, int x, int y)
 {
 	double pi = 3.14;
 	int r = size * 3 / 5;
@@ -283,35 +159,72 @@ void pentagon(HDC hdc, int x, int y, int size)
 	Polygon(hdc, point, 5);
 }
 
-void drawshape(HDC hdc, int x, int y, COLORREF color, int size, int shape, int now)
+// 육각형 그리기
+void hexagon(HDC hdc, int x, int y)
 {
-	int rx = cellsize/2 + (cellsize * x);
-	int ry = cellsize/2 + (cellsize * y);
-	HBRUSH brush = CreateSolidBrush(color);
-	SelectObject(hdc, brush);
-	switch (shape)
+	POINT point[6] = { {x - size / 2,y - size / 4},{x,y - size / 2}, {x + size / 2,y - size / 4}, {x + size / 2,y + size / 4},{x,y + size / 2},{x - size / 2,y + size / 4} };
+	Polygon(hdc, point, 6);
+}
+
+void drawshape(HDC hdc, Shape shape)
+{
+	if (shape.type == 0)
+		return;
+	
+	switch (shape.type)
 	{
-	case 0:
-		if(!now)
-			sandglass(hdc, rx, ry, size);
-		else
-			pentagon(hdc, rx, ry, size);
+	case 2: {
+		HPEN pen = CreatePen(PS_SOLID, shape.thickness, shape.line);
+		SelectObject(hdc, pen);
+		drawline(hdc, shape.x, shape.y);
+		DeleteObject(pen);
+	}
 		break;
-	case 1:
-		triangle(hdc, rx, ry, size);
-		break;
-	case 2:
-		square(hdc, rx, ry, size);
-		break;
-	case 3:
-		circle(hdc, rx, ry, size);
-		break;
-	case 4:
-		oval(hdc, rx, ry, size);
-		break;
+	case 3: {
+		HBRUSH brush = CreateSolidBrush(shape.inner);
+		HPEN pen = CreatePen(PS_SOLID, shape.thickness, shape.line);
+		SelectObject(hdc, brush);
+		SelectObject(hdc, pen);
+		triangle(hdc, shape.x, shape.y);
+		DeleteObject(brush);
+		DeleteObject(pen);
+	}
+		 break;
+	case 4: {
+		HBRUSH brush = CreateSolidBrush(shape.inner);
+		HPEN pen = CreatePen(PS_SOLID, shape.thickness, shape.line);
+		SelectObject(hdc, brush);
+		SelectObject(hdc, pen);
+		square(hdc, shape.x, shape.y);
+		DeleteObject(brush);
+		DeleteObject(pen);
+	}
+		  break;
+
+	case 5: {
+		HBRUSH brush = CreateSolidBrush(shape.inner);
+		HPEN pen = CreatePen(PS_SOLID, shape.thickness, shape.line);
+		SelectObject(hdc, brush);
+		SelectObject(hdc, pen);
+		pentagon(hdc, shape.x, shape.y);
+		DeleteObject(brush);
+		DeleteObject(pen);
+	}
+		  break;
+	case 6: {
+		HBRUSH brush = CreateSolidBrush(shape.inner);
+		HPEN pen = CreatePen(PS_SOLID, shape.thickness, shape.line);
+		SelectObject(hdc, brush);
+		SelectObject(hdc, pen);
+		hexagon(hdc, shape.x, shape.y);
+		DeleteObject(brush);
+		DeleteObject(pen);
+	}
+		  break;
 	default:
 		break;
 	}
+
 }
 
 
@@ -331,16 +244,15 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT iMessage, WPARAM wParam, LPARAM lParam)
 	{
 		PAINTSTRUCT ps;
 		HDC hdc = BeginPaint(hWnd, &ps);
-		drawtable(hdc);
-
-		for (int i = 0; i < 2; ++i)
-			drawshape(hdc, player[i].x, player[i].y, player[i].color, player[i].size, player[i].shape, i);
-
-		drawshape(hdc, goal.x, goal.y, goalcolor, goalsize, goalshape, 0);
-		if (ending == 0)
-			TextOut(hdc, 0, cellsize * tablecount, L"player1 승리", 10);
-		else if(ending == 1)
-			TextOut(hdc, 0, cellsize * tablecount, L"player2 승리", 10);
+		square(hdc, max_x / 2, 0);
+		if (errorcheck)
+			TextOut(hdc, 0, 0, errormessage, _tcslen(errormessage));
+		for (int i = 0; i < shapecount; i++) {
+			if (shape[i].type != 0) {
+				TextOut(hdc, 700, (i + 1) * 20, status[i].c_str(), status[i].length());
+			}
+		}
+		drawshape(hdc, shape[now]);
 		EndPaint(hWnd, &ps);
 	}
 	break;
@@ -367,6 +279,12 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT iMessage, WPARAM wParam, LPARAM lParam)
 			settinggame();
 		InvalidateRect(hWnd, NULL, TRUE);
 		break;
+	case WM_CHAR:
+		if (wParam >= 0x20 && wParam <= 0x3F) {
+			Input[inputcount++] = wParam;
+		}
+		else if (wParam == VK_RETURN)
+			Inputcheck();
 	case WM_DESTROY:
 		PostQuitMessage(0);
 		break;

@@ -1,4 +1,4 @@
-﻿//실습 12번
+﻿//실습 13번
 #define _CRT_SECURE_NO_WARNINGS
 #include <windows.h>
 #include <tchar.h>
