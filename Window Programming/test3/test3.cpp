@@ -67,10 +67,12 @@ WCHAR errormessage[20] = L"에러 발생!";
 bool errorcheck = false;
 wstring status[shapecount];
 WCHAR Input[30];
+WCHAR Caretpoint[30];
 int inputcount = 0;
 int now = 0;
 int prior = 0;
-int next = 0;
+int Next = 0;
+bool allcheck = false;
 wstring Inputresult[6];
 
 void Inputcheck()
@@ -82,8 +84,17 @@ void Inputcheck()
 		wstring word = w;
 		Inputresult[i++] = w;
 	}
+	if (i != 6) {
+		for (int i = 0; i < 30; i++) {
+			Input[i] = '\0';
+			Caretpoint[i] = '\0';
+		}
+		inputcount = 0;
+		errorcheck = true;
+		return;
+	}
 	if (stoi(Inputresult[0]) == 2 || stoi(Inputresult[0]) == 3 || stoi(Inputresult[0]) == 4 || stoi(Inputresult[0]) == 5 || stoi(Inputresult[0]) == 6) {
-		if (stoi(Inputresult[1]) >= 0 && stoi(Inputresult[2]) >= 0 && stoi(Inputresult[3]) >= 0 && stoi(Inputresult[4]) >= 0 && stoi(Inputresult[1]) <= max_x && stoi(Inputresult[1]) >= 0 && stoi(Inputresult[3]) <= max_x && stoi(Inputresult[2]) <= max_y && stoi(Inputresult[4]) >= max_y) {
+		if (stoi(Inputresult[1]) >= 0 && stoi(Inputresult[2]) >= 0 && stoi(Inputresult[3]) >= 0 && stoi(Inputresult[4]) >= 0 && stoi(Inputresult[1]) <= max_x  && stoi(Inputresult[3]) <= max_x && stoi(Inputresult[2]) <= max_y && stoi(Inputresult[4]) <= max_y) {
 			if (stoi(Inputresult[5]) >= 1 && stoi(Inputresult[5]) <= 10) {
 				for (int i = 0; i < shapecount; i++) {
 					if (shape[i].type == 0) {
@@ -93,12 +104,17 @@ void Inputcheck()
 						shape[i].x = rand() % (x1 > x2 ? (x1 - x2 + 1) + x2 : (x2 - x1 + 1) + x1);
 						shape[i].y = rand() % (y1 > y2 ? (y1 - y2 + 1) + y2 : (y2 - y1 + 1) + y1);
 						shape[i].thickness = stoi(Inputresult[5]);
-						status[i] += L"shape : " + i;
-						status[i] += L" X : " + shape[i].x;
-						status[i] += L" Y : " + shape[i].y;
-						status[i] += L" WIDTH : " + shape[i].thickness;
+						status[i] += L"shape : " + to_wstring(i);
+						status[i] += L" X : " + to_wstring(shape[i].x);
+						status[i] += L" Y : " + to_wstring(shape[i].y);
+						status[i] += L" WIDTH : " + to_wstring(shape[i].thickness);
+						prior = now;
 						now = i;
-						for (int i = 0 ;i <_tcslen(Input);i++)
+						for (int i = 0; i < 30; i++) {
+							Input[i] = '\0';
+							Caretpoint[i] = '\0';
+						}
+						inputcount = 0;
 						return;
 					}
 				}
@@ -106,8 +122,22 @@ void Inputcheck()
 			}
 		}
 	}
+	for (int i = 0; i < 30; i++) {
+		Input[i] = '\0';
+		Caretpoint[i] = '\0';
+	}
+	inputcount = 0;
 	errorcheck = true;
 	return;
+}
+
+void setstatus()
+{
+	status[now].clear();
+	status[now] += L"shape : " + to_wstring(now);
+	status[now] += L" X : " + to_wstring(shape[now].x);
+	status[now] += L" Y : " + to_wstring(shape[now].y);
+	status[now] += L" WIDTH : " + to_wstring(shape[now].thickness);
 }
 
 // 게임 기초 세팅
@@ -119,6 +149,7 @@ void settinggame()
 		shape[i].inner = RGB(rand() % 256, rand() % 256, rand() % 256);
 		shape[i].line = RGB(rand() % 256, rand() % 256, rand() % 256);
 		shape[i].size = 30;
+		status[i].clear();
 	}
 }
 
@@ -176,7 +207,7 @@ void drawshape(HDC hdc, Shape shape)
 {
 	if (shape.type == 0)
 		return;
-	
+	setstatus();
 	switch (shape.type)
 	{
 	case 2: {
@@ -238,67 +269,115 @@ void drawshape(HDC hdc, Shape shape)
 LRESULT CALLBACK WndProc(HWND hWnd, UINT iMessage, WPARAM wParam, LPARAM lParam)
 {
 	PAINTSTRUCT ps;
+	SIZE size;
 	HDC hDC;
 	HPEN hDefPen;
 	HBRUSH hDefBrush, hRedBrush, hBlueBrush, hGreenBrush, hYellowBrush, hTurquoiseBrush;
 	RECT Now;
 	switch (iMessage) {
 	case WM_CREATE:
+		CreateCaret(hWnd, NULL, 5, 15);
+		ShowCaret(hWnd);
 		settinggame();
 		break;
 	case WM_PAINT:
 	{
 		PAINTSTRUCT ps;
 		HDC hdc = BeginPaint(hWnd, &ps);
-		Rectangle(hdc, max_x / 2 - 50, 0, max_x / 2 + 50, 30);
+		Rectangle(hdc, max_x / 2 - 55, 0, max_x / 2 + 200, 30);
 		TextOut(hdc, max_x / 2 - 50, 5, Input, _tcslen(Input));
-		if (errorcheck)
+		GetTextExtentPoint32(hdc, Caretpoint, inputcount, &size);
+		SetCaretPos(size.cx+ max_x / 2 - 50, 5);
+		if (errorcheck) {
+			errorcheck = false;
 			TextOut(hdc, 0, 0, errormessage, _tcslen(errormessage));
+		}
 		for (int i = 0; i < shapecount; i++) {
 			if (shape[i].type != 0) {
-				TextOut(hdc, 700, (i + 1) * 20, status[i].c_str(), status[i].length());
+				TextOut(hdc, 800, (i + 1) * 20, status[i].c_str(), status[i].length());
+				if(i == now)
+					TextOut(hdc, 780, (i + 1) * 20, L"->", strlen("->"));
 			}
 		}
-		drawshape(hdc, shape[now]);
+		if (allcheck) {
+			allcheck = false;
+			for (int i = 0; i < shapecount; i++)
+				drawshape(hdc, shape[i]);
+		}
+		else 
+			drawshape(hdc, shape[now]);
 		EndPaint(hWnd, &ps);
 	}
 	break;
 	case WM_KEYDOWN:
 		if (wParam == 'Q')
 			PostQuitMessage(0);
-		else if (wParam == VK_UP) MovePlayer(0, -1);
-		else if (wParam == VK_LEFT) MovePlayer(-1, 0);
-		else if (wParam == VK_DOWN) MovePlayer(0, 1);
-		else if (wParam == VK_RIGHT) MovePlayer(1, 0);
-		else if (wParam == 'D')
-			settinggame();
-		else if (wParam == '+') {
-			if (shape[now].thickness >= 10) {
-				shape[now].size += 5;
+		if (shape[now].type != 0) {
+			if (wParam == VK_UP) MovePlayer(0, -10);
+			else if (wParam == VK_LEFT) MovePlayer(-10, 0);
+			else if (wParam == VK_DOWN) MovePlayer(0, 10);
+			else if (wParam == VK_RIGHT) MovePlayer(10, 0);
+			else if (wParam == 'D') settinggame();
+			else if (wParam == 'L')shape[now].line = RGB(rand() % 256, rand() % 256, rand() % 256);
+			else if (wParam == 'I')shape[now].inner = RGB(rand() % 256, rand() % 256, rand() % 256);
+			else if (wParam == 'P') {
+				if(now != prior)
+					Next = now, now = prior;
 			}
-			else
-				shape[now].thickness++;
-		}
-		else if (wParam == '-') {
-			if (shape[now].thickness <= 1) {
-				shape[now].size -= 5;
+			else if (wParam == 'N') {
+				if(now != Next)
+				prior = now, now = Next;
 			}
-			else
-				shape[now].thickness--;
+			else if (wParam == 'A') allcheck = true;
 		}
-		else if (wParam == VK_BACK) {
-			if(inputcount>0)
-				Input[(inputcount--)-1] = '\0';
+		else {
+			if (wParam == VK_UP) errorcheck = true;
+			else if (wParam == VK_LEFT) errorcheck = true;
+			else if (wParam == VK_DOWN) errorcheck = true;
+			else if (wParam == VK_RIGHT) errorcheck = true;
+			else if (wParam == 'D') errorcheck = true;
+			else if (wParam == 'L') errorcheck = true;
+			else if (wParam == 'I') errorcheck = true;
+			else if (wParam == 'P') errorcheck = true;
+			else if (wParam == 'N') errorcheck = true;
+			else if (wParam == 'A') errorcheck = true;
 		}
 		InvalidateRect(hWnd, NULL, TRUE);
 		break;
 	case WM_CHAR:
-		
-		if (wParam >= 0x20 && wParam <= 0x3F && wParam != '+'&&wParam != '-') {
-			Input[inputcount++] = wParam;
+		if (wParam == '+') {
+			if (shape[now].type != 0) {
+				if (shape[now].thickness >= 10) {
+					if (shape[now].size < 200)
+						shape[now].size += 5;
+				}
+				else
+					shape[now].thickness++;
+			}
+			else errorcheck = true;
+		}
+		else if (wParam == '-') {
+			if (shape[now].type != 0) {
+				if (shape[now].thickness <= 1) {
+					if (shape[now].size > 10)
+						shape[now].size -= 5;
+				}
+				else
+					shape[now].thickness--;
+			}
+			else errorcheck = true;
+		}
+		else if ((wParam >= 0x30 && wParam <= 0x39) || wParam == 0x20) {
+			Input[inputcount] = wParam;
+			Caretpoint[inputcount++] = wParam;
 		}
 		else if (wParam == VK_RETURN)
 			Inputcheck();
+		else if (wParam == VK_BACK) {
+			if (inputcount > 0)
+				Input[(inputcount--) - 1] = '\0';
+		}
+		InvalidateRect(hWnd, NULL, TRUE);
 		break;
 	case WM_DESTROY:
 		PostQuitMessage(0);
