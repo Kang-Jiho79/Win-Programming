@@ -13,7 +13,6 @@ using namespace std;
 #define max_x 800
 #define max_y 600
 #define shapecount 5
-#define size 30
 
 HINSTANCE g_hInst;
 LPCTSTR IpszClass = L"Window Class Name";
@@ -59,6 +58,7 @@ struct Shape
 	int x, y;
 	int type;
 	int thickness;
+	int size;
 	COLORREF inner, line;
 };
 
@@ -69,15 +69,18 @@ wstring status[shapecount];
 WCHAR Input[30];
 int inputcount = 0;
 int now = 0;
+int prior = 0;
+int next = 0;
 wstring Inputresult[6];
 
 void Inputcheck()
 {
 	wstringstream ss(Input);
 	wstring w;
-	for (int i = 0; i < 6; i++) {
+	int i = 0;
+	while (ss>>w) {
 		wstring word = w;
-		Inputresult[i] = w;
+		Inputresult[i++] = w;
 	}
 	if (stoi(Inputresult[0]) == 2 || stoi(Inputresult[0]) == 3 || stoi(Inputresult[0]) == 4 || stoi(Inputresult[0]) == 5 || stoi(Inputresult[0]) == 6) {
 		if (stoi(Inputresult[1]) >= 0 && stoi(Inputresult[2]) >= 0 && stoi(Inputresult[3]) >= 0 && stoi(Inputresult[4]) >= 0 && stoi(Inputresult[1]) <= max_x && stoi(Inputresult[1]) >= 0 && stoi(Inputresult[3]) <= max_x && stoi(Inputresult[2]) <= max_y && stoi(Inputresult[4]) >= max_y) {
@@ -94,6 +97,8 @@ void Inputcheck()
 						status[i] += L" X : " + shape[i].x;
 						status[i] += L" Y : " + shape[i].y;
 						status[i] += L" WIDTH : " + shape[i].thickness;
+						now = i;
+						for (int i = 0 ;i <_tcslen(Input);i++)
 						return;
 					}
 				}
@@ -113,10 +118,11 @@ void settinggame()
 		shape[i].type = 0;
 		shape[i].inner = RGB(rand() % 256, rand() % 256, rand() % 256);
 		shape[i].line = RGB(rand() % 256, rand() % 256, rand() % 256);
+		shape[i].size = 30;
 	}
 }
 
-void MovePlayer(int dx, int dy,int now) {
+void MovePlayer(int dx, int dy) {
 	if (shape[now].type == 0)
 		return;
 	int nx = shape[now].x + dx;
@@ -128,25 +134,25 @@ void MovePlayer(int dx, int dy,int now) {
 	shape[now].y = ny;
 }
 
-void drawline(HDC hdc, int x, int y)
+void drawline(HDC hdc, int x, int y, int size)
 {
 	MoveToEx(hdc, x-size, y-size, NULL);
 	LineTo(hdc, x+size, y+size);
 }
 // 사각형 그리기
-void square(HDC hdc, int x, int y)
+void square(HDC hdc, int x, int y, int size)
 {
 	Rectangle(hdc, x - size / 2, y - size / 2, x + size / 2, y + size / 2);
 }
 // 삼각형 그리기
-void triangle(HDC hdc, int x, int y)
+void triangle(HDC hdc, int x, int y, int size)
 {
 	POINT point[3] = { {x,y - size * 2/3}, {x - size / 2, y + size /3},{x + size / 2, y + size / 3} };
 	Polygon(hdc, point, 3);
 }
 
 // 오각형 그리기
-void pentagon(HDC hdc, int x, int y)
+void pentagon(HDC hdc, int x, int y, int size)
 {
 	double pi = 3.14;
 	int r = size * 3 / 5;
@@ -160,7 +166,7 @@ void pentagon(HDC hdc, int x, int y)
 }
 
 // 육각형 그리기
-void hexagon(HDC hdc, int x, int y)
+void hexagon(HDC hdc, int x, int y, int size)
 {
 	POINT point[6] = { {x - size / 2,y - size / 4},{x,y - size / 2}, {x + size / 2,y - size / 4}, {x + size / 2,y + size / 4},{x,y + size / 2},{x - size / 2,y + size / 4} };
 	Polygon(hdc, point, 6);
@@ -176,7 +182,7 @@ void drawshape(HDC hdc, Shape shape)
 	case 2: {
 		HPEN pen = CreatePen(PS_SOLID, shape.thickness, shape.line);
 		SelectObject(hdc, pen);
-		drawline(hdc, shape.x, shape.y);
+		drawline(hdc, shape.x, shape.y, shape.size);
 		DeleteObject(pen);
 	}
 		break;
@@ -185,7 +191,7 @@ void drawshape(HDC hdc, Shape shape)
 		HPEN pen = CreatePen(PS_SOLID, shape.thickness, shape.line);
 		SelectObject(hdc, brush);
 		SelectObject(hdc, pen);
-		triangle(hdc, shape.x, shape.y);
+		triangle(hdc, shape.x, shape.y, shape.size);
 		DeleteObject(brush);
 		DeleteObject(pen);
 	}
@@ -195,7 +201,7 @@ void drawshape(HDC hdc, Shape shape)
 		HPEN pen = CreatePen(PS_SOLID, shape.thickness, shape.line);
 		SelectObject(hdc, brush);
 		SelectObject(hdc, pen);
-		square(hdc, shape.x, shape.y);
+		square(hdc, shape.x, shape.y, shape.size);
 		DeleteObject(brush);
 		DeleteObject(pen);
 	}
@@ -206,7 +212,7 @@ void drawshape(HDC hdc, Shape shape)
 		HPEN pen = CreatePen(PS_SOLID, shape.thickness, shape.line);
 		SelectObject(hdc, brush);
 		SelectObject(hdc, pen);
-		pentagon(hdc, shape.x, shape.y);
+		pentagon(hdc, shape.x, shape.y, shape.size);
 		DeleteObject(brush);
 		DeleteObject(pen);
 	}
@@ -216,7 +222,7 @@ void drawshape(HDC hdc, Shape shape)
 		HPEN pen = CreatePen(PS_SOLID, shape.thickness, shape.line);
 		SelectObject(hdc, brush);
 		SelectObject(hdc, pen);
-		hexagon(hdc, shape.x, shape.y);
+		hexagon(hdc, shape.x, shape.y, shape.size);
 		DeleteObject(brush);
 		DeleteObject(pen);
 	}
@@ -244,7 +250,8 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT iMessage, WPARAM wParam, LPARAM lParam)
 	{
 		PAINTSTRUCT ps;
 		HDC hdc = BeginPaint(hWnd, &ps);
-		square(hdc, max_x / 2, 0);
+		Rectangle(hdc, max_x / 2 - 50, 0, max_x / 2 + 50, 30);
+		TextOut(hdc, max_x / 2 - 50, 5, Input, _tcslen(Input));
 		if (errorcheck)
 			TextOut(hdc, 0, 0, errormessage, _tcslen(errormessage));
 		for (int i = 0; i < shapecount; i++) {
@@ -257,34 +264,42 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT iMessage, WPARAM wParam, LPARAM lParam)
 	}
 	break;
 	case WM_KEYDOWN:
-		if (ending == 2) {
-			if (wParam == 'Q')
-				PostQuitMessage(0);
-			else {
-				if (presentplayer == 0) {
-					if (wParam == 'W') MovePlayer(0, -1);
-					else if (wParam == 'A') MovePlayer(-1, 0);
-					else if (wParam == 'S') MovePlayer(0, 1);
-					else if (wParam == 'D') MovePlayer(1, 0);
-				}
-				else {
-					if (wParam == 'I') MovePlayer(0, -1);
-					else if (wParam == 'J') MovePlayer(-1, 0);
-					else if (wParam == 'K') MovePlayer(0, 1);
-					else if (wParam == 'L') MovePlayer(1, 0);
-				}
-			}
-		}
-		else if (wParam == 'R')
+		if (wParam == 'Q')
+			PostQuitMessage(0);
+		else if (wParam == VK_UP) MovePlayer(0, -1);
+		else if (wParam == VK_LEFT) MovePlayer(-1, 0);
+		else if (wParam == VK_DOWN) MovePlayer(0, 1);
+		else if (wParam == VK_RIGHT) MovePlayer(1, 0);
+		else if (wParam == 'D')
 			settinggame();
+		else if (wParam == '+') {
+			if (shape[now].thickness >= 10) {
+				shape[now].size += 5;
+			}
+			else
+				shape[now].thickness++;
+		}
+		else if (wParam == '-') {
+			if (shape[now].thickness <= 1) {
+				shape[now].size -= 5;
+			}
+			else
+				shape[now].thickness--;
+		}
+		else if (wParam == VK_BACK) {
+			if(inputcount>0)
+				Input[(inputcount--)-1] = '\0';
+		}
 		InvalidateRect(hWnd, NULL, TRUE);
 		break;
 	case WM_CHAR:
-		if (wParam >= 0x20 && wParam <= 0x3F) {
+		
+		if (wParam >= 0x20 && wParam <= 0x3F && wParam != '+'&&wParam != '-') {
 			Input[inputcount++] = wParam;
 		}
 		else if (wParam == VK_RETURN)
 			Inputcheck();
+		break;
 	case WM_DESTROY:
 		PostQuitMessage(0);
 		break;
