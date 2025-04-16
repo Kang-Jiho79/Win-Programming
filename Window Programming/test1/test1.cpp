@@ -138,16 +138,16 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT iMsg, WPARAM wParam, LPARAM lParam)
 		break;
 	case WM_TIMER:
 		if (player.movecheck == 1) {
-			if (player.x + player.size / 2 > 800) {
+			if (player.x + player.size / 2 > rectView.right) {
 				player.width = false;
-				if (player.y + player.size > 600)
+				if (player.y + player.size > rectView.bottom)
 					player.y = 20;
 				else 
 					player.y += cellsize;
 			}
 			else if (player.x - player.size / 2 < 0) {
 				player.width = true;
-				if (player.y + player.size > 600)
+				if (player.y + player.size > rectView.bottom)
 					player.y = 20;
 				else
 					player.y += cellsize;
@@ -156,16 +156,16 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT iMsg, WPARAM wParam, LPARAM lParam)
 			else { MovePlayer(-player.speed, 0); }
 		}
 		else if (player.movecheck == 2) {
-			if (player.y + player.size / 2 > 600) {
+			if (player.y + player.size / 2 > rectView.bottom) {
 				player.length = false;
-				if (player.x + player.size > 800)
+				if (player.x + player.size > rectView.right)
 					player.x = 20;
 				else
 					player.x += cellsize;
 			}
 			else if (player.y - player.size / 2 < 0) {
 				player.length = true;
-				if (player.x + player.size > 800)
+				if (player.x + player.size > rectView.right)
 					player.x = 20;
 				else
 					player.x += cellsize;

@@ -1,4 +1,4 @@
-﻿//실습 14번
+﻿//실습 3-4번
 #define _CRT_SECURE_NO_WARNINGS
 #include <windows.h>
 #include <tchar.h>
@@ -51,44 +51,51 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevlnstance, LPSTR lpszCmdPa
 
 
 struct Cell {
-	int shapetype;	// 0 : 비어있음 1 : 원 2 : 삼각형 3 ; 사각형
+	int playercheck; // 0 : 플레이어아님 1 : 세로 2 : 가로 3 : 사각형
+	int colortype;	// 0 : 흰 1 : 빨강 2 : 초록 3 ; 파랑
 	int x, y;
-	int size = cellsize;
+	int rotationcheck;
 	COLORREF color;
 };
 
+bool startcheck = false;
 Cell player;
-Cell cell[10];
-int presentplayer = 0;
-int cellcount = 0;
+Cell table[tablecount][tablecount];
 
-COLORREF colors[4];
-
-bool circlecheck = false;
-COLORREF circlecolor;
-bool trianglecheck = false;
-COLORREF trianglecolor;
-bool squarecheck = false;
-COLORREF squarecolor;
+COLORREF colors[4] = {RGB(255,255,255),RGB(255,0,0),RGB(0,255,0),RGB(0,0,255)};
 
 // 게임 기초 세팅
 void settinggame()
 {
 	srand(unsigned(time(NULL)));
-	player.shapetype = 0;
-	presentplayer = 0;
-	for (int i = 0; i < maxcell; i++) {
-		cell[i].shapetype = 0;
-	}
-	cellcount = 0;
-	for (int i = 0; i < 4; i++) {
-		colors[i] = RGB(rand() % 256, rand() % 256, rand() % 256);
-	}
-	circlecolor = RGB(rand() % 256, rand() % 256, rand() % 256);
-	trianglecolor = RGB(rand() % 256, rand() % 256, rand() % 256);
-	squarecolor = RGB(rand() % 256, rand() % 256, rand() % 256);
+	for (int i = 0; i<tablecount;i++)
+		for (int j = 0; j < tablecount; j++) {
+			table[i][j].playercheck = 0;
+			table[i][j].colortype = 0;
+			table[i][j].x = j;
+			table[i][j].y = i;
+			table[i][j].color = colors[0];
+			table[i][j].rotationcheck = false;
+		}
+	player.playercheck = 0;
+	player.colortype = 0;
+	player.x = 14;
+	player.y = 3;
+	player.color = colors[0];
+	player.rotationcheck = false;
 }
-
+// 게임 시작
+void startgame() {
+	startcheck = true;
+	int selectplayer = rand() % 3 + 1;
+	player.playercheck = selectplayer;
+	player.colortype = selectplayer;
+	player.x = 14;
+	player.y = 3;
+	player.color = colors[selectplayer];
+	player.rotationcheck = false;
+}
+// 판 그리기
 void drawtable(HDC hdc)
 {
 	for (int i = 0; i <= tablecount; i++) {
@@ -99,85 +106,157 @@ void drawtable(HDC hdc)
 	}
 }
 
-void selectplayer(int i)
+// 플레이어 멈추게하기
+void playermovestop (Cell cell)
 {
-	if (cell[i].shapetype == 0)
-		return;
-	if (player.shapetype != 0) {
-		cell[presentplayer] = player;
-	}
-	player = cell[i];
-	presentplayer = i;
-	cell[i].shapetype = 0;
-}
-
-void MovePlayer(int dx, int dy) {
-	int nx = player.x + dx;
-	int ny = player.y + dy;
-	if (nx < 0) {
-		nx = tablecount - 1;
-	}
-	else if (nx >= tablecount)
-		nx = 1;
-	if (ny < 0) {
-		ny = tablecount - 1;
-	}
-	else if (ny >= tablecount)
-		ny = 1;
-	player.x = nx;
-	player.y = ny;
-}
-
-void changecolor()
-{
-	switch (player.shapetype)
+	switch (cell.playercheck)
 	{
-	case 0:
-		return;
-	case 1:
-		circlecheck = !circlecheck;
-		break;
-	case 2:
-		trianglecheck = !trianglecheck;
-		break;
-	case 3:
-		squarecheck = !squarecheck;
-		break;
+	case 1: {
+		if (cell.rotationcheck) {
+			for (int i = 0; i < 4; i++) {
+				table[cell.y][cell.x + i].colortype = cell.playercheck;
+				table[cell.y][cell.x + i].color = colors[cell.playercheck];
+			}
+		}
+		else {
+			for (int i = 0; i < 4; i++) {
+				table[cell.y - i][cell.x].colortype = cell.playercheck;
+				table[cell.y - i][cell.x].color = colors[cell.playercheck];
+			}
+		}
+	}
+		  break;
+	case 2: {
+		if (cell.rotationcheck) {
+			for (int i = 0; i < 4; i++) {
+				table[cell.y - i][cell.x].colortype = cell.playercheck;
+				table[cell.y - i][cell.x].color = colors[cell.playercheck];
+			}
+		}
+		else {
+			for (int i = 0; i < 4; i++) {
+				table[cell.y][cell.x + i].colortype = cell.playercheck;
+				table[cell.y][cell.x + i].color = colors[cell.playercheck];
+			}
+		}
+	}
+		  break;
+	case 3: {
+		for (int i = 0; i < 2; i++)
+			for (int j = 0; j < 2; j++) {
+				table[cell.y - i][cell.x + j].colortype = cell.playercheck;
+				table[cell.y - i][cell.x + j].color = colors[cell.playercheck];
+			}
+	}
+		  break;
 	default:
 		break;
 	}
+	int selectplayer = rand() % 3 + 1;
+	cell.playercheck = selectplayer;
+	cell.colortype = selectplayer;
+	cell.x = 14;
+	cell.y = 3;
+	cell.color = colors[selectplayer];
+	cell.rotationcheck = false;
 }
 
-void sizeup()
-{
-	if (player.shapetype == 0)
-		return;
-	if (player.size >= cellsize * 5)
-		return;
-	player.size += cellsize;
-}
 
-void sizedown()
-{
-	if (player.shapetype == 0)
+// 플레이어 움직임
+void MovePlayer(int dx, int dy, Cell cell) {
+	int nx = cell.x + dx;
+	int ny = cell.y + dy;
+	if (nx < 0) return;
+	else if (nx >= tablecount) return;
+	else if (ny >= tablecount) {
+		playermovestop(player);
 		return;
-	if (player.size <= cellsize)
-		return;
-	player.size -= cellsize;
-}
-
-void deletecell()
-{
-	player.shapetype = 0;
-	for (int i = presentplayer; i < maxcell - 1; i++)
-		cell[i] = cell[i + 1];
-	presentplayer = 0;
-}
-
-// 원 그리기
-void circle(HDC hdc, int x, int y, int size)
-{
-	Ellipse(hdc, x - size / 2, y - size / 2, x + size / 2, y + size / 2);
+	}
+	switch (cell.playercheck)
+	{
+	case 1: {
+		if (cell.rotationcheck) {
+			for (int i = 0; i < 4; i++) {
+				if (table[ny][nx + i].colortype != 0) {
+					if (dx == 0) {
+						playermovestop(player);
+						return;
+					}
+					else
+						return;
+				}
+				table[cell.y][cell.x + i].colortype = 0;
+				table[cell.y][cell.x + i].color = colors[0];
+			}
+		}
+		else {
+			for (int i = 0; i < 4; i++) {
+				if (table[ny - i][nx].colortype != 0) {
+					if (dx == 0) {
+						playermovestop(player);
+						return;
+					}
+					else
+						return;
+				}
+				table[cell.y - i][cell.x].colortype = 0;
+				table[cell.y - i][cell.x].color = colors[0];
+			}
+		}
+	}
+		  break;
+	case 2: {
+		if (cell.rotationcheck) {
+			for (int i = 0; i < 4; i++) {
+				if (table[ny - i][nx].colortype != 0) {
+					if (dx == 0) {
+						playermovestop(player);
+						return;
+					}
+					else
+						return;
+				}
+				table[cell.y - i][cell.x].colortype = 0;
+				table[cell.y - i][cell.x].color = colors[0];
+			}
+		}
+		else {
+			for (int i = 0; i < 4; i++) {
+				if (table[ny][nx +i].colortype != 0) {
+					if (dx == 0) {
+						playermovestop(player);
+						return;
+					}
+					else
+						return;
+				}
+				table[cell.y][cell.x + i].colortype = 0;
+				table[cell.y][cell.x + i].color = colors[0];
+			}
+		}
+	}
+		  break;
+	case 3: {
+		for (int i = 0; i < 2; i++)
+			for (int j = 0; j < 2; j++) {
+				if (table[ny - i][nx + j].colortype != 0) {
+					if (dx == 0) {
+						playermovestop(player);
+						return;
+					}
+					else
+						return;
+				}
+				table[cell.y - i][cell.x + j].colortype = 0;
+				table[cell.y - i][cell.x + j].color = colors[0];
+			}
+	}
+		  break;
+	default:
+		break;
+	}
+	cell.x = nx;
+	cell.y = ny;
 }
 
 // 사각형 그리기
@@ -185,216 +264,68 @@ void square(HDC hdc, int x, int y, int size)
 {
 	Rectangle(hdc, x - size / 2, y - size / 2, x + size / 2, y + size / 2);
 }
-// 삼각형 그리기
-void triangle(HDC hdc, int x, int y, int size)
-{
-	POINT point[3] = { {x,y - size * 2 / 3}, {x - size / 2, y + size / 3},{x + size / 2, y + size / 3} };
-	Polygon(hdc, point, 3);
-}
-
-// 모레시계 그리기
-void sandglass(HDC hdc, int x, int y, int size)
-{
-	POINT point[6] = { {x,y},{x - size / 2,y - size / 2},{x + size / 2,y - size / 2},{x,y},{x + size / 2,y + size / 2},{x - size / 2,y + size / 2} };
-	Polygon(hdc, point, 6);
-}
-
 
 // 셀 설정
-void selectcircle()
-{
-	if (cellcount == 10) {
-		for (int i = 0; i < maxcell - 1; i++)
-			cell[i] = cell[i + 1];
-		cellcount = 9;
-	}
-	cell[cellcount].shapetype = 1;
-	cell[cellcount].color = colors[rand() % 4];
-	bool check = true;
-	while (check)
-	{
-		check = false;
-		cell[cellcount].x = rand() % tablecount;
-		cell[cellcount].y = rand() % tablecount;
-		for (int i = 0; i < cellcount; i++) {
-			if (cell[cellcount].x == cell[i].x && cell[cellcount].y == cell[i].y)
-				check = true;
-		}
-	}
-	cell[cellcount].size = maxcell;
-	cellcount++;
-}
-
-void selecttriangle()
-{
-	if (cellcount == 10) {
-		for (int i = 0; i < maxcell - 1; i++)
-			cell[i] = cell[i + 1];
-		cellcount = 9;
-	}
-	cell[cellcount].shapetype = 2;
-	cell[cellcount].color = colors[rand() % 4];
-	bool check = true;
-	while (check)
-	{
-		check = false;
-		cell[cellcount].x = rand() % tablecount;
-		cell[cellcount].y = rand() % tablecount;
-		for (int i = 0; i < cellcount; i++) {
-			if (cell[cellcount].x == cell[i].x && cell[cellcount].y == cell[i].y)
-				check = true;
-		}
-	}
-	cell[cellcount].size = maxcell;
-	cellcount++;
-}
-
-void selectsquare()
-{
-	if (cellcount == 10) {
-		for (int i = 0; i < maxcell - 1; i++)
-			cell[i] = cell[i + 1];
-		cellcount = 9;
-	}
-	cell[cellcount].shapetype = 3;
-	cell[cellcount].color = colors[rand() % 4];
-	bool check = true;
-	while (check)
-	{
-		check = false;
-		cell[cellcount].x = rand() % tablecount;
-		cell[cellcount].y = rand() % tablecount;
-		for (int i = 0; i < cellcount; i++) {
-			if (cell[cellcount].x == cell[i].x && cell[cellcount].y == cell[i].y)
-				check = true;
-		}
-	}
-	cell[cellcount].size = maxcell;
-	cellcount++;
-}
-
 void drawshape(HDC hdc, Cell cell)
 {
-	if (cell.shapetype == 0)
-		return;
-
 	int rx = cellsize / 2 + (cellsize * cell.x);
 	int ry = cellsize / 2 + (cellsize * cell.y);
-	switch (cell.shapetype)
-	{
-	case 1: {
-		if (circlecheck) {
-			HBRUSH brush = CreateSolidBrush(circlecolor);
-			SelectObject(hdc, brush);
-			sandglass(hdc, rx, ry, cell.size);
-			DeleteObject(brush);
-		}
-		else {
-			HBRUSH brush = CreateSolidBrush(cell.color);
-			SelectObject(hdc, brush);
-			circle(hdc, rx, ry, cell.size);
-			DeleteObject(brush);
-		}
-	}
-		break;
-	case 2: {
-		if (trianglecheck) {
-			HBRUSH brush = CreateSolidBrush(trianglecolor);
-			SelectObject(hdc, brush);
-			sandglass(hdc, rx, ry, cell.size);
-			DeleteObject(brush);
-		}
-		else {
-			HBRUSH brush = CreateSolidBrush(cell.color);
-			SelectObject(hdc, brush);
-			triangle(hdc, rx, ry, cell.size);
-			DeleteObject(brush);
-		}
-	}
-		break;
-	case 3: {
-		if (squarecheck) {
-			HBRUSH brush = CreateSolidBrush(squarecolor);
-			SelectObject(hdc, brush);
-			sandglass(hdc, rx, ry, cell.size);
-			DeleteObject(brush);
-		}
-		else {
-			HBRUSH brush = CreateSolidBrush(cell.color);
-			SelectObject(hdc, brush);
-			square(hdc, rx, ry, cell.size);
-			DeleteObject(brush);
-		}
-	}
-		break;
-	default:
-		break;
-	}
+	HBRUSH brush = CreateSolidBrush(cell.color);
+	SelectObject(hdc, brush);
+	square(hdc, rx, ry, cellsize);
+	DeleteObject(brush);
 
 }
-
+// 플레이어 그리기
 void drawplayer(HDC hdc, Cell cell)
 {
-	if (cell.shapetype == 0)
+	if (cell.playercheck == 0)
 		return;
-	
-	HPEN pen = CreatePen(PS_SOLID, 3, BLACK_PEN);
-	SelectObject(hdc, pen);
-	
-
 	int rx = cellsize / 2 + (cellsize * cell.x);
 	int ry = cellsize / 2 + (cellsize * cell.y);
-	switch (cell.shapetype)
+	switch (cell.playercheck)
 	{
 	case 1: {
-		if (circlecheck) {
-			HBRUSH brush = CreateSolidBrush(circlecolor);
-			SelectObject(hdc, brush);
-			sandglass(hdc, rx, ry, cell.size);
-			DeleteObject(brush);
+		if (cell.rotationcheck) {
+			for (int i = 0; i < 4; i++) {
+				table[cell.y][cell.x+i].colortype = cell.playercheck;
+				table[cell.y][cell.x+i].color = colors[cell.playercheck];
+			}
 		}
 		else {
-			HBRUSH brush = CreateSolidBrush(cell.color);
-			SelectObject(hdc, brush);
-			circle(hdc, rx, ry, cell.size);
-			DeleteObject(brush);
+			for (int i = 0; i < 4; i++) {
+				table[cell.y-i][cell.x].colortype = cell.playercheck;
+				table[cell.y-i][cell.x].color = colors[cell.playercheck];
+			}
 		}
 	}
 		  break;
 	case 2: {
-		if (trianglecheck) {
-			HBRUSH brush = CreateSolidBrush(trianglecolor);
-			SelectObject(hdc, brush);
-			sandglass(hdc, rx, ry, cell.size);
-			DeleteObject(brush);
+		if (cell.rotationcheck) {
+			for (int i = 0; i < 4; i++) {
+				table[cell.y - i][cell.x].colortype = cell.playercheck;
+				table[cell.y - i][cell.x].color = colors[cell.playercheck];
+			}
 		}
 		else {
-			HBRUSH brush = CreateSolidBrush(cell.color);
-			SelectObject(hdc, brush);
-			triangle(hdc, rx, ry, cell.size);
-			DeleteObject(brush);
+			for (int i = 0; i < 4; i++) {
+				table[cell.y][cell.x + i].colortype = cell.playercheck;
+				table[cell.y][cell.x + i].color = colors[cell.playercheck];
+			}
 		}
 	}
 		  break;
 	case 3: {
-		if (squarecheck) {
-			HBRUSH brush = CreateSolidBrush(squarecolor);
-			SelectObject(hdc, brush);
-			sandglass(hdc, rx, ry, cell.size);
-			DeleteObject(brush);
-		}
-		else {
-			HBRUSH brush = CreateSolidBrush(cell.color);
-			SelectObject(hdc, brush);
-			square(hdc, rx, ry, cell.size);
-			DeleteObject(brush);
-		}
+		for (int i = 0;i<2;i++)
+			for (int j = 0; j < 2; j++) {
+				table[cell.y-i][cell.x+j].colortype = cell.playercheck;
+				table[cell.y-i][cell.x+j].color = colors[cell.playercheck];
+			}
 	}
 		  break;
 	default:
 		break;
 	}
-	DeleteObject(pen);
 }
 
 
@@ -409,15 +340,19 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT iMessage, WPARAM wParam, LPARAM lParam)
 	switch (iMessage) {
 	case WM_CREATE:
 		settinggame();
+		SetTimer(hWnd, 1, 1000, NULL);
 		break;
 	case WM_PAINT:
 	{
 		PAINTSTRUCT ps;
 		HDC hdc = BeginPaint(hWnd, &ps);
 		drawtable(hdc);
-		for (int i = 0; i < 10; ++i)
-			drawshape(hdc, cell[i]);
 		drawplayer(hdc, player);
+		for (int i = 0; i < tablecount; ++i)
+			for (int j = 0; j < tablecount; j++) {
+				drawshape(hdc, table[i][j]);
+			}
+		
 		EndPaint(hWnd, &ps);
 	}
 	break;
@@ -425,32 +360,26 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT iMessage, WPARAM wParam, LPARAM lParam)
 
 		if (wParam == 'Q')
 			PostQuitMessage(0);
-		else if (wParam == VK_UP) MovePlayer(0, -1);
-		else if (wParam == VK_LEFT) MovePlayer(-1, 0);
-		else if (wParam == VK_DOWN) MovePlayer(0, 1);
-		else if (wParam == VK_RIGHT) MovePlayer(1, 0);
-		else if (wParam == 'P') settinggame();
-		else if (wParam == 'E') selectcircle();
-		else if (wParam == 'T') selecttriangle();
-		else if (wParam == 'R') selectsquare();
-		else if (wParam == 'C') changecolor();
-		else if (wParam == 'D') deletecell();
-		else if (wParam == '0') selectplayer(9);
-		else if (wParam == '1') selectplayer(0);
-		else if (wParam == '2') selectplayer(1);
-		else if (wParam == '3') selectplayer(2);
-		else if (wParam == '4') selectplayer(3);
-		else if (wParam == '5') selectplayer(4);
-		else if (wParam == '6') selectplayer(5);
-		else if (wParam == '7') selectplayer(6);
-		else if (wParam == '8') selectplayer(7);
-		else if (wParam == '9') selectplayer(8);
+		if (startcheck) {
+			if (wParam == VK_UP) MovePlayer(0, -(player.y - 3), player);
+			else if (wParam == VK_LEFT) MovePlayer(-1, 0, player);
+			else if (wParam == VK_DOWN) MovePlayer(0, 1, player);
+			else if (wParam == VK_RIGHT) MovePlayer(1, 0, player);
+			else if (wParam == VK_RETURN) player.rotationcheck = ~player.rotationcheck;
+		}
+		else
+			if (wParam == 'S') {
+				startgame();
+			}
 		InvalidateRect(hWnd, NULL, TRUE);
 		break;
-	case WM_CHAR:
-		if (wParam == '+') sizeup();
-		else if (wParam == '-') sizedown();
-		break;
+	case WM_TIMER: {
+		if (startcheck)
+			if (player.playercheck != 0)
+				MovePlayer(0, 1, player);
+		InvalidateRect(hWnd, NULL, TRUE);
+	}
+	break;
 	case WM_DESTROY:
 		PostQuitMessage(0);
 		break;
