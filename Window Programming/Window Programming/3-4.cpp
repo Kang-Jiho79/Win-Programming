@@ -1,4 +1,4 @@
-ï»¿//ì‹¤ìŠµ 3-4ë²ˆ
+//½Ç½À 3-4¹ø
 #define _CRT_SECURE_NO_WARNINGS
 #include <windows.h>
 #include <tchar.h>
@@ -16,43 +16,43 @@ LPCTSTR IpszWindowName = L"Window Programming Lab";
 
 LRESULT CALLBACK WndProc(HWND hWnd, UINT iMessage, WPARAM wParam, LPARAM lParam);
 
-int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevlnstance, LPSTR lpszCmdParam, int nCMdShow)	// ë©”ì¸í•¨ìˆ˜ 
+int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevlnstance, LPSTR lpszCmdParam, int nCMdShow)	// ¸ŞÀÎÇÔ¼ö 
 {
 	HWND hWnd;
 	MSG Message;
-	WNDCLASSEX WndClass;	//ìœˆë„ìš° í´ë˜ìŠ¤
+	WNDCLASSEX WndClass;	//À©µµ¿ì Å¬·¡½º
 	g_hInst = hInstance;
 
-	WndClass.cbSize = sizeof(WndClass);	//	êµ¬ì¡°ì²´ì˜ í¬ê¸°
-	WndClass.style = CS_HREDRAW | CS_VREDRAW;	//	ìœˆë„ìš° ì¶œë ¥ ìŠ¤íƒ€ì¼
-	WndClass.lpfnWndProc = (WNDPROC)WndProc;	//	ìœˆë„ìš° ë©”ì„¸ì§€ë¥¼ ì²˜ë¦¬í•˜ëŠ” ìœˆë„ìš° í”„ë¡œì‹œì € í•¨ìˆ˜ ì´ë¦„ (Long Pointer Funtion WndProc)
-	WndClass.cbClsExtra = 0;	//	ì‚¬ìš©ì—¬ë¶„ ë©”ëª¨ë¦¬(class)
-	WndClass.cbWndExtra = 0;	//	ì‚¬ìš©ì—¬ë¶„ ë©”ëª¨ë¦¬(Window)
-	WndClass.hInstance = hInstance;		//ì‘ìš© í”„ë¡œê·¸ë¨ ID
-	WndClass.hIcon = LoadIcon(NULL, IDI_APPLICATION);	// ì‹¤í–‰íŒŒì¼ì˜ ì“°ì¼ ì•„ì´ì½˜ì§€ì •
-	WndClass.hCursor = LoadCursor(NULL, IDC_ARROW);		// ìœˆë„ìš°ì—ì„œ ì“°ì¼ ì»¤ì„œì§€ì •
-	WndClass.hbrBackground = (HBRUSH)GetStockObject(WHITE_BRUSH);	// ìœˆë„ìš°ì˜ ë°°ê²½ìƒ‰ì„ ì„¤ì •í• ìˆ˜ìˆë‹¤.
-	WndClass.lpszMenuName = NULL;	//ë©”ë‰´ ì´ë¦„
-	WndClass.lpszClassName = IpszClass;		//	í´ë˜ìŠ¤ì˜ ì´ë¦„
-	WndClass.hIconSm = LoadIcon(NULL, IDI_APPLICATION);		//ì‘ì€ ì•„ì´ì½˜ (ë³´í†µ hIconê³¼ ê°™ì€ê±¸ ì‚¬ìš©)
+	WndClass.cbSize = sizeof(WndClass);	//	±¸Á¶Ã¼ÀÇ Å©±â
+	WndClass.style = CS_HREDRAW | CS_VREDRAW;	//	À©µµ¿ì Ãâ·Â ½ºÅ¸ÀÏ
+	WndClass.lpfnWndProc = (WNDPROC)WndProc;	//	À©µµ¿ì ¸Ş¼¼Áö¸¦ Ã³¸®ÇÏ´Â À©µµ¿ì ÇÁ·Î½ÃÀú ÇÔ¼ö ÀÌ¸§ (Long Pointer Funtion WndProc)
+	WndClass.cbClsExtra = 0;	//	»ç¿ë¿©ºĞ ¸Ş¸ğ¸®(class)
+	WndClass.cbWndExtra = 0;	//	»ç¿ë¿©ºĞ ¸Ş¸ğ¸®(Window)
+	WndClass.hInstance = hInstance;		//ÀÀ¿ë ÇÁ·Î±×·¥ ID
+	WndClass.hIcon = LoadIcon(NULL, IDI_APPLICATION);	// ½ÇÇàÆÄÀÏÀÇ ¾²ÀÏ ¾ÆÀÌÄÜÁöÁ¤
+	WndClass.hCursor = LoadCursor(NULL, IDC_ARROW);		// À©µµ¿ì¿¡¼­ ¾²ÀÏ Ä¿¼­ÁöÁ¤
+	WndClass.hbrBackground = (HBRUSH)GetStockObject(WHITE_BRUSH);	// À©µµ¿ìÀÇ ¹è°æ»öÀ» ¼³Á¤ÇÒ¼öÀÖ´Ù.
+	WndClass.lpszMenuName = NULL;	//¸Ş´º ÀÌ¸§
+	WndClass.lpszClassName = IpszClass;		//	Å¬·¡½ºÀÇ ÀÌ¸§
+	WndClass.hIconSm = LoadIcon(NULL, IDI_APPLICATION);		//ÀÛÀº ¾ÆÀÌÄÜ (º¸Åë hIcon°ú °°Àº°É »ç¿ë)
 	RegisterClassEx(&WndClass);
 
-	hWnd = CreateWindow(IpszClass, IpszWindowName, WS_OVERLAPPEDWINDOW, 0, 0, 1100, 1100, NULL, (HMENU)NULL, hInstance, NULL);	//ìœˆë„ìš° ë§Œë“¤ê¸° í•¨ìˆ˜
+	hWnd = CreateWindow(IpszClass, IpszWindowName, WS_OVERLAPPEDWINDOW, 0, 0, 1100, 1100, NULL, (HMENU)NULL, hInstance, NULL);	//À©µµ¿ì ¸¸µé±â ÇÔ¼ö
 
-	ShowWindow(hWnd, nCMdShow);	//	ìœˆë„ìš° ë„ìš°ê¸°
-	UpdateWindow(hWnd);		// ìœˆë„ìš° ì—…ë°ì´íŠ¸
+	ShowWindow(hWnd, nCMdShow);	//	À©µµ¿ì ¶ç¿ì±â
+	UpdateWindow(hWnd);		// À©µµ¿ì ¾÷µ¥ÀÌÆ®
 
-	while (GetMessage(&Message, 0, 0, 0)) {		//	ë©”ì‹œì§€ ë£¨í”„ (ë©”ì‹œì§€ ë°›ì•„ì˜¤ëŠ” ì—­í• ) -  ì¢…ë£Œë©”ì‹œì§€ê°€ ë“¤ì–´ì˜¬ë•Œê¹Œì§€ ë°˜ë³µ
-		TranslateMessage(&Message);		//	ë©”ì‹œì§€ ë²ˆì—­
-		DispatchMessage(&Message);	//	ë©”ì‹œì§€ ì²˜ë¦¬
+	while (GetMessage(&Message, 0, 0, 0)) {		//	¸Ş½ÃÁö ·çÇÁ (¸Ş½ÃÁö ¹Ş¾Æ¿À´Â ¿ªÇÒ) -  Á¾·á¸Ş½ÃÁö°¡ µé¾î¿Ã¶§±îÁö ¹İº¹
+		TranslateMessage(&Message);		//	¸Ş½ÃÁö ¹ø¿ª
+		DispatchMessage(&Message);	//	¸Ş½ÃÁö Ã³¸®
 	}
 	return Message.wParam;
 }
 
 
 struct Cell {
-	int playercheck; // 0 : í”Œë ˆì´ì–´ì•„ë‹˜ 1 : ì„¸ë¡œ 2 : ê°€ë¡œ 3 : ì‚¬ê°í˜•
-	int colortype;	// 0 : í° 1 : ë¹¨ê°• 2 : ì´ˆë¡ 3 ; íŒŒë‘
+	int playercheck; // 0 : ÇÃ·¹ÀÌ¾î¾Æ´Ô 1 : ¼¼·Î 2 : °¡·Î 3 : »ç°¢Çü
+	int colortype;	// 0 : Èò 1 : »¡°­ 2 : ÃÊ·Ï 3 ; ÆÄ¶û
 	int x, y;
 	int rotationcheck;
 	COLORREF color;
@@ -62,13 +62,13 @@ bool startcheck = false;
 Cell player;
 Cell table[tablecount][tablecount];
 
-COLORREF colors[4] = {RGB(255,255,255),RGB(255,0,0),RGB(0,255,0),RGB(0,0,255)};
+COLORREF colors[4] = { RGB(255,255,255),RGB(255,0,0),RGB(0,255,0),RGB(0,0,255) };
 
-// ê²Œì„ ê¸°ì´ˆ ì„¸íŒ…
+// °ÔÀÓ ±âÃÊ ¼¼ÆÃ
 void settinggame()
 {
 	srand(unsigned(time(NULL)));
-	for (int i = 0; i<tablecount;i++)
+	for (int i = 0; i < tablecount; i++)
 		for (int j = 0; j < tablecount; j++) {
 			table[i][j].playercheck = 0;
 			table[i][j].colortype = 0;
@@ -84,7 +84,7 @@ void settinggame()
 	player.color = colors[0];
 	player.rotationcheck = false;
 }
-// ê²Œì„ ì‹œì‘
+// °ÔÀÓ ½ÃÀÛ
 void startgame() {
 	startcheck = true;
 	int selectplayer = rand() % 3 + 1;
@@ -95,7 +95,7 @@ void startgame() {
 	player.color = colors[selectplayer];
 	player.rotationcheck = false;
 }
-// íŒ ê·¸ë¦¬ê¸°
+// ÆÇ ±×¸®±â
 void drawtable(HDC hdc)
 {
 	for (int i = 0; i <= tablecount; i++) {
@@ -106,8 +106,8 @@ void drawtable(HDC hdc)
 	}
 }
 
-// í”Œë ˆì´ì–´ ë©ˆì¶”ê²Œí•˜ê¸°
-void playermovestop (Cell cell)
+// ÇÃ·¹ÀÌ¾î ¸ØÃß°ÔÇÏ±â
+void playermovestop(Cell cell)
 {
 	switch (cell.playercheck)
 	{
@@ -162,7 +162,7 @@ void playermovestop (Cell cell)
 }
 
 
-// í”Œë ˆì´ì–´ ì›€ì§ì„
+// ÇÃ·¹ÀÌ¾î ¿òÁ÷ÀÓ
 void MovePlayer(int dx, int dy, Cell cell) {
 	int nx = cell.x + dx;
 	int ny = cell.y + dy;
@@ -222,7 +222,7 @@ void MovePlayer(int dx, int dy, Cell cell) {
 		}
 		else {
 			for (int i = 0; i < 4; i++) {
-				if (table[ny][nx +i].colortype != 0) {
+				if (table[ny][nx + i].colortype != 0) {
 					if (dx == 0) {
 						playermovestop(player);
 						return;
@@ -259,13 +259,13 @@ void MovePlayer(int dx, int dy, Cell cell) {
 	cell.y = ny;
 }
 
-// ì‚¬ê°í˜• ê·¸ë¦¬ê¸°
+// »ç°¢Çü ±×¸®±â
 void square(HDC hdc, int x, int y, int size)
 {
 	Rectangle(hdc, x - size / 2, y - size / 2, x + size / 2, y + size / 2);
 }
 
-// ì…€ ì„¤ì •
+// ¼¿ ¼³Á¤
 void drawshape(HDC hdc, Cell cell)
 {
 	int rx = cellsize / 2 + (cellsize * cell.x);
@@ -276,7 +276,7 @@ void drawshape(HDC hdc, Cell cell)
 	DeleteObject(brush);
 
 }
-// í”Œë ˆì´ì–´ ê·¸ë¦¬ê¸°
+// ÇÃ·¹ÀÌ¾î ±×¸®±â
 void drawplayer(HDC hdc, Cell cell)
 {
 	if (cell.playercheck == 0)
@@ -288,14 +288,14 @@ void drawplayer(HDC hdc, Cell cell)
 	case 1: {
 		if (cell.rotationcheck) {
 			for (int i = 0; i < 4; i++) {
-				table[cell.y][cell.x+i].colortype = cell.playercheck;
-				table[cell.y][cell.x+i].color = colors[cell.playercheck];
+				table[cell.y][cell.x + i].colortype = cell.playercheck;
+				table[cell.y][cell.x + i].color = colors[cell.playercheck];
 			}
 		}
 		else {
 			for (int i = 0; i < 4; i++) {
-				table[cell.y-i][cell.x].colortype = cell.playercheck;
-				table[cell.y-i][cell.x].color = colors[cell.playercheck];
+				table[cell.y - i][cell.x].colortype = cell.playercheck;
+				table[cell.y - i][cell.x].color = colors[cell.playercheck];
 			}
 		}
 	}
@@ -316,10 +316,10 @@ void drawplayer(HDC hdc, Cell cell)
 	}
 		  break;
 	case 3: {
-		for (int i = 0;i<2;i++)
+		for (int i = 0; i < 2; i++)
 			for (int j = 0; j < 2; j++) {
-				table[cell.y-i][cell.x+j].colortype = cell.playercheck;
-				table[cell.y-i][cell.x+j].color = colors[cell.playercheck];
+				table[cell.y - i][cell.x + j].colortype = cell.playercheck;
+				table[cell.y - i][cell.x + j].color = colors[cell.playercheck];
 			}
 	}
 		  break;
@@ -352,7 +352,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT iMessage, WPARAM wParam, LPARAM lParam)
 			for (int j = 0; j < tablecount; j++) {
 				drawshape(hdc, table[i][j]);
 			}
-		
+
 		EndPaint(hWnd, &ps);
 	}
 	break;
@@ -379,7 +379,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT iMessage, WPARAM wParam, LPARAM lParam)
 				MovePlayer(0, 1, player);
 		InvalidateRect(hWnd, NULL, TRUE);
 	}
-	break;
+				 break;
 	case WM_DESTROY:
 		PostQuitMessage(0);
 		break;
