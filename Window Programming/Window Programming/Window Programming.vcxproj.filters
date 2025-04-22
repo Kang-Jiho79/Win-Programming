@@ -13,6 +13,12 @@
       <UniqueIdentifier>{67DA6AB6-F800-4c08-8B7A-83BB121AAD01}</UniqueIdentifier>
       <Extensions>rc;ico;cur;bmp;dlg;rc2;rct;bin;rgs;gif;jpg;jpeg;jpe;resx;tiff;tif;png;wav;mfcribbon-ms</Extensions>
     </Filter>
+    <Filter Include="소스 파일\챕터 2">
+      <UniqueIdentifier>{9069195b-1465-4b2a-a196-d4fdb4b3eb2f}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="소스 파일\챕터 3">
+      <UniqueIdentifier>{0f8a219d-0009-4cb8-a01a-b88db5304649}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="framework.h">
@@ -29,8 +35,62 @@
     </ClInclude>
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="Window Programming.cpp">
-      <Filter>소스 파일</Filter>
+    <ClCompile Include="2-1.cpp">
+      <Filter>소스 파일\챕터 2</Filter>
+    </ClCompile>
+    <ClCompile Include="2-2.cpp">
+      <Filter>소스 파일\챕터 2</Filter>
+    </ClCompile>
+    <ClCompile Include="2-3.cpp">
+      <Filter>소스 파일\챕터 2</Filter>
+    </ClCompile>
+    <ClCompile Include="2-4.cpp">
+      <Filter>소스 파일\챕터 2</Filter>
+    </ClCompile>
+    <ClCompile Include="2-5.cpp">
+      <Filter>소스 파일\챕터 2</Filter>
+    </ClCompile>
+    <ClCompile Include="2-6.cpp">
+      <Filter>소스 파일\챕터 2</Filter>
+    </ClCompile>
+    <ClCompile Include="2-7, 8, 9.cpp">
+      <Filter>소스 파일\챕터 2</Filter>
+    </ClCompile>
+    <ClCompile Include="2-10.cpp">
+      <Filter>소스 파일\챕터 2</Filter>
+    </ClCompile>
+    <ClCompile Include="2-11.cpp">
+      <Filter>소스 파일\챕터 2</Filter>
+    </ClCompile>
+    <ClCompile Include="2-12.cpp">
+      <Filter>소스 파일\챕터 2</Filter>
+    </ClCompile>
+    <ClCompile Include="2-13.cpp">
+      <Filter>소스 파일\챕터 2</Filter>
+    </ClCompile>
+    <ClCompile Include="2-14.cpp">
+      <Filter>소스 파일\챕터 2</Filter>
+    </ClCompile>
+    <ClCompile Include="2-15.cpp">
+      <Filter>소스 파일\챕터 2</Filter>
+    </ClCompile>
+    <ClCompile Include="3-1.cpp">
+      <Filter>소스 파일\챕터 3</Filter>
+    </ClCompile>
+    <ClCompile Include="3-2.cpp">
+      <Filter>소스 파일\챕터 3</Filter>
+    </ClCompile>
+    <ClCompile Include="3-3.cpp">
+      <Filter>소스 파일\챕터 3</Filter>
+    </ClCompile>
+    <ClCompile Include="3-4.cpp">
+      <Filter>소스 파일\챕터 3</Filter>
+    </ClCompile>
+    <ClCompile Include="3-5.cpp">
+      <Filter>소스 파일\챕터 3</Filter>
+    </ClCompile>
+    <ClCompile Include="3-6.cpp">
+      <Filter>소스 파일\챕터 3</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
