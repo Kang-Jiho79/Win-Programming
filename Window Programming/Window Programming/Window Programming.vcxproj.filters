@@ -36,6 +36,9 @@
     <ClInclude Include="Window Programming.h">
       <Filter>헤더 파일</Filter>
     </ClInclude>
+    <ClInclude Include="resource1.h">
+      <Filter>헤더 파일</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="2-1.cpp">
@@ -107,6 +110,9 @@
   </ItemGroup>
   <ItemGroup>
     <ResourceCompile Include="Window Programming.rc">
+      <Filter>리소스 파일</Filter>
+    </ResourceCompile>
+    <ResourceCompile Include="4-3Resource.rc">
       <Filter>리소스 파일</Filter>
     </ResourceCompile>
   </ItemGroup>

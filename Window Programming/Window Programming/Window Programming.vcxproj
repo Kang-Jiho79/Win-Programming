@@ -129,6 +129,7 @@
   <ItemGroup>
     <ClInclude Include="framework.h" />
     <ClInclude Include="Resource.h" />
+    <ClInclude Include="resource1.h" />
     <ClInclude Include="targetver.h" />
     <ClInclude Include="Window Programming.h" />
   </ItemGroup>
@@ -211,6 +212,7 @@
     <ClCompile Include="4-3.cpp" />
   </ItemGroup>
   <ItemGroup>
+    <ResourceCompile Include="4-3Resource.rc" />
     <ResourceCompile Include="Window Programming.rc" />
   </ItemGroup>
   <ItemGroup>

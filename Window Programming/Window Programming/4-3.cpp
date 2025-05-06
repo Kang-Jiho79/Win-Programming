@@ -5,6 +5,8 @@
 #include <time.h>
 #include <math.h>
 
+#include "resource1.h"
+
 #define tablecount 10
 #define cellsize 40
 #define size 15
@@ -31,7 +33,7 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevlnstance, LPSTR lpszCmdPa
 	WndClass.hIcon = LoadIcon(NULL, IDI_APPLICATION);	// 실행파일의 쓰일 아이콘지정
 	WndClass.hCursor = LoadCursor(NULL, IDC_ARROW);		// 윈도우에서 쓰일 커서지정
 	WndClass.hbrBackground = (HBRUSH)GetStockObject(WHITE_BRUSH);	// 윈도우의 배경색을 설정할수있다.
-	WndClass.lpszMenuName = NULL;	//메뉴 이름
+	WndClass.lpszMenuName = MAKEINTRESOURCE(IDR_MENU1);	//메뉴 이름
 	WndClass.lpszClassName = IpszClass;		//	클래스의 이름
 	WndClass.hIconSm = LoadIcon(NULL, IDI_APPLICATION);		//작은 아이콘 (보통 hIcon과 같은걸 사용)
 	RegisterClassEx(&WndClass);
@@ -61,6 +63,8 @@ Cell		cell[tablecount][tablecount];
 COLORREF	colors[5] = { RGB(255,0,0),RGB(0,255,0),RGB(0,0,255),RGB(255,255,0),RGB(255,0,255) };
 int			collectpie = 0;
 bool		game = false;
+bool		hint = false;
+bool		score = false;
 
 void gamesetting()
 {
@@ -208,7 +212,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT iMessage, WPARAM wParam, LPARAM lParam)
 	switch (iMessage) {
 	case WM_CREATE:
 		gamesetting();
-		SetTimer(hWnd, 1, 1000, NULL);
+		SetTimer(hWnd, 1, 5000, NULL);
 		break;
 	case WM_PAINT:
 	{
@@ -223,6 +227,8 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT iMessage, WPARAM wParam, LPARAM lParam)
 			for (int j = 0; j < tablecount; j++)
 				drawcell(mDC, cell[i][j]);
 		}
+		if (score)
+			TextOut(mDC, 0, tablecount * cellsize + 20, L"점수 : " + collectpie, 10);
 		BitBlt(hDC, 0, 0, rt.right, rt.bottom, mDC, 0, 0, SRCCOPY);
 		DeleteDC(mDC);
 		DeleteObject(hBitmap);
@@ -230,10 +236,31 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT iMessage, WPARAM wParam, LPARAM lParam)
 	}
 	break;
 	case WM_COMMAND:
+		switch (LOWORD(wParam))
+		{
+		case ID_GAMESTART:
+			game = true;
+			break;
+		case ID_GAMEEND:
+			PostQuitMessage(0);
+			break;
+		case ID_HINT:
+			hint = true;
+			break;
+		case ID_SCORE:
+			score = true;
+			break;
+		default:
+			break;
+		}
 		InvalidateRect(hWnd, NULL, FALSE);
 		break;
-	case WM_TIMER: {		
-		InvalidateRect(hWnd, NULL, FALSE);
+	case WM_TIMER: {	
+		if (hint) {
+
+			InvalidateRect(hWnd, NULL, FALSE);
+		}
+		
 		
 	}
 		break;
