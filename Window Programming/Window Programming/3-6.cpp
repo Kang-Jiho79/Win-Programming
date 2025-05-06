@@ -1,373 +1,119 @@
 #include <windows.h>
-#include <atlimage.h>
+#include <math.h>
 
-#define WindowWidth 750
-#define WindowHeight 750
-#define nWidth 25
-#define nHeight 25
-#define NUMBER 30
-#define BULLET_NUMBER 40
+#define TIMER_ID 1
+#define PI 3.14159265
 
-typedef struct {
-	int xPosTank, yPosTank;
-	int dir;
-	int moving;
-	POINT gunLeft, gunRight;
-	int shape;
-} Tank;
+LRESULT CALLBACK WndProc(HWND, UINT, WPARAM, LPARAM);
 
-typedef struct {
-	int xPosBullet, yPosBullet;
-	int dir;
-	bool isOn;
-} Bullet;
+enum Mode { NONE, UPDOWN, ROTATE };
+Mode currentMode = NONE;
 
-HINSTANCE g_hInst;
-TCHAR lpszClass[] = TEXT("Top view shotting with obstacle");
+RECT player = { 290, 210, 310, 230 }; // 플레이어 사각형
+int obstacleY[4] = { 100, 150, 200, 250 }; // 위아래 이동
+int dir[4] = { 1, 1, 1, 1 };
 
-int iBoard[NUMBER][NUMBER];		//-- 0: 빈 칸, 1: 장애물, 2: 아이템
-bool makeRoad = false;
-bool makeRoadDone = false;
-int bulletCount = 0;
-bool bulletFired = false;
+float angle = 0.0f;
 
-Tank tankObject;
-Bullet bulletList[BULLET_NUMBER];
+int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE, LPSTR, int nCmdShow) {
+    WNDCLASS wc = { 0 };
+    wc.lpfnWndProc = WndProc;
+    wc.hInstance = hInstance;
+    wc.lpszClassName = TEXT("HardestGame");
+    wc.hbrBackground = (HBRUSH)(COLOR_WINDOW + 1);
 
-LRESULT CALLBACK WndProc(HWND hWnd, UINT iMessage, WPARAM wParam, LPARAM lParam);
-void DrawBoard(HDC hdc);
-void DrawBlock(HDC hdc);
-void DrawTank(HDC hdc, int xP, int yP, int d);
-void DrawBullet(HDC hdc, int xP, int yP, int d);
+    RegisterClass(&wc);
 
-int APIENTRY WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpszCmdParam, int nCmdShow)
-{
-	HWND hWnd;
-	MSG Message;
-	WNDCLASS WndClass;
-	g_hInst = hInstance;
+    HWND hwnd = CreateWindow(wc.lpszClassName, TEXT("세상에서 가장 어려운 게임 - WinAPI"),
+        WS_OVERLAPPEDWINDOW, 100, 100, 600, 500, NULL, NULL, hInstance, NULL);
 
-	if (!hPrevInstance) {
-		WndClass.cbClsExtra = 0;
-		WndClass.cbWndExtra = 0;
-		WndClass.hbrBackground = (HBRUSH)GetStockObject(WHITE_BRUSH);		//--- 윈도우 배경색 변경 가능
-		WndClass.hCursor = LoadCursor(NULL, IDC_ARROW);
-		WndClass.hIcon = LoadIcon(NULL, IDI_APPLICATION);
-		WndClass.hInstance = hInstance;
-		WndClass.lpfnWndProc = (WNDPROC)WndProc;
-		WndClass.lpszClassName = lpszClass;
-		WndClass.lpszMenuName = NULL;
-		WndClass.style = CS_HREDRAW | CS_VREDRAW;
-		RegisterClass(&WndClass);
-	}
-	hWnd = CreateWindow(lpszClass, lpszClass, WS_OVERLAPPEDWINDOW, 0, 0, 800, 800, NULL, (HMENU)NULL, hInstance, NULL);		//--- 윈도우 크기 변경 가능
-	ShowWindow(hWnd, nCmdShow);
+    ShowWindow(hwnd, nCmdShow);
+    UpdateWindow(hwnd);
 
-	while (GetMessage(&Message, 0, 0, 0)) {
-		TranslateMessage(&Message);
-		DispatchMessage(&Message);
-	}
-	return Message.wParam;
+    SetTimer(hwnd, TIMER_ID, 30, NULL); // 타이머 30ms 주기
+
+    MSG msg;
+    while (GetMessage(&msg, NULL, 0, 0)) {
+        TranslateMessage(&msg);
+        DispatchMessage(&msg);
+    }
+    return 0;
 }
 
-
-
-LRESULT CALLBACK WndProc(HWND hWnd, UINT iMessage, WPARAM wParam, LPARAM lParam)
-{
-	HDC hdc, memdc;
-	PAINTSTRUCT ps;
-	HBRUSH hBrush, oBrush;
-	int i, j, mx, my, tx, ty;
-	RECT rect;
-	POINT pt;
-
-	static CImage img;
-	static int iWidth, iHeight, drawBoard;
-	static HBITMAP hBitmap;
-
-	switch (iMessage) {
-	case WM_CREATE:
-		for (i = 0; i < NUMBER; i++)
-			for (j = 0; j < NUMBER; j++)
-				iBoard[i][j] = 0;
-
-		tankObject.xPosTank = 1;
-		tankObject.yPosTank = 1;
-		tankObject.dir = 2;					//--- x+: 2,   x-: 0,   y+: 3,   y-: 1
-
-		img.Load(TEXT("d.bmp"));
-		iWidth = img.GetWidth();
-		iHeight = img.GetHeight();
-		drawBoard = 1;
-		break;
-
-	case WM_PAINT:
-		hdc = BeginPaint(hWnd, &ps);
-
-		hBitmap = CreateCompatibleBitmap(hdc, WindowWidth, WindowHeight);
-		memdc = CreateCompatibleDC(hdc);
-		(HBITMAP)SelectObject(memdc, hBitmap);
-
-		img.Draw(memdc, 0, 0, WindowWidth, WindowHeight, 0, 0, iWidth, iHeight);
-
-		if (drawBoard)
-			DrawBoard(memdc);
-
-		DrawBlock(memdc);
-		DrawTank(memdc, tankObject.xPosTank, tankObject.yPosTank, tankObject.dir);
-
-		if (bulletFired) {
-			for (i = 0; i < bulletCount; i++)
-				if (bulletList[i].isOn == true)
-					DrawBullet(memdc, bulletList[i].xPosBullet, bulletList[i].yPosBullet, bulletList[i].dir);
-		}
-
-		BitBlt(hdc, 0, 0, WindowWidth, WindowHeight, memdc, 0, 0, SRCCOPY);
-
-		DeleteObject(hBitmap);
-		DeleteDC(memdc);
-
-		EndPaint(hWnd, &ps);
-		break;
-
-	case WM_LBUTTONDOWN:
-		mx = LOWORD(lParam);
-		my = HIWORD(lParam);
-		makeRoad = true;
-		break;
-
-	case WM_MOUSEMOVE:
-		if (makeRoad) {
-			hdc = GetDC(hWnd);
-			mx = LOWORD(lParam);
-			my = HIWORD(lParam);
-			i = mx / nWidth;
-			j = my / nHeight;
-			rect.left = i * nWidth; rect.right = rect.left + nWidth;
-			rect.top = j * nHeight; rect.bottom = rect.top + nHeight;
-			pt.x = mx; pt.y = my;
-			//if (PtInRect(&rect, pt) && iBoard[i][j] == 0) {
-			if (iBoard[i][j] == 0) {
-				iBoard[i][j] = 1;
-
-				hBrush = CreateSolidBrush(RGB(200, 200, 200));
-				oBrush = (HBRUSH)SelectObject(hdc, hBrush);
-				Rectangle(hdc, i * nWidth, j * nHeight, i * nWidth + nWidth, j * nHeight + nHeight);
-				SelectObject(hdc, oBrush);
-				DeleteObject(hBrush);
-			}
-			ReleaseDC(hWnd, hdc);
-		}
-		break;
-
-	case WM_LBUTTONUP:
-		makeRoad = false;
-		makeRoadDone = true;
-		break;
-
-	case WM_CHAR:
-		switch (wParam)
-		{
-		case 'w':			// y-
-			tankObject.dir = 1;
-			if (tankObject.yPosTank > 1 && iBoard[tankObject.xPosTank][tankObject.yPosTank - 2] == 0)
-				tankObject.yPosTank--;
-			break;
-
-		case 's':			// y+
-			tankObject.dir = 3;
-			if (tankObject.yPosTank < NUMBER - 2 && iBoard[tankObject.xPosTank][tankObject.yPosTank + 2] == 0)
-				tankObject.yPosTank++;
-			break;
-
-		case 'a':			// x-a
-			tankObject.dir = 0;
-			if (tankObject.xPosTank > 1 && iBoard[tankObject.xPosTank - 2][tankObject.yPosTank] == 0)
-				tankObject.xPosTank--;
-			break;
-
-		case 'd':			// x+
-			tankObject.dir = 2;
-			if (tankObject.xPosTank < NUMBER - 2 && iBoard[tankObject.xPosTank + 2][tankObject.yPosTank] == 0)
-				tankObject.xPosTank++;
-			break;
-
-		case 'p':
-			drawBoard++;
-			drawBoard %= 2;
-			break;
-		case 'q':
-			PostQuitMessage(0);
-			break;
-		}
-		InvalidateRect(hWnd, NULL, false);
-		break;
-
-	case WM_KEYDOWN:
-		switch (wParam) {
-		case VK_RETURN:					//--- x+: 2,   x-: 0,   y+: 3,   y-: 1
-			bulletFired = true;
-			bulletList[bulletCount].isOn = 1;
-			bulletList[bulletCount].dir = tankObject.dir;
-			if (tankObject.dir == 0) {					//--- x-
-				bulletList[bulletCount].xPosBullet = tankObject.gunLeft.x - 5;
-				bulletList[bulletCount].yPosBullet = tankObject.gunLeft.y;
-				bulletCount++;
-			}
-			else if (tankObject.dir == 2) {			//--- x+
-				bulletList[bulletCount].xPosBullet = tankObject.gunLeft.x + 5;
-				bulletList[bulletCount].yPosBullet = tankObject.gunLeft.y;
-				bulletCount++;
-			}
-			else if (tankObject.dir == 1) {			//--- y-
-				bulletList[bulletCount].xPosBullet = tankObject.gunLeft.x;
-				bulletList[bulletCount].yPosBullet = tankObject.gunLeft.y - 5;
-				bulletCount++;
-			}
-			else if (tankObject.dir == 3) {			//--- y+
-				bulletList[bulletCount].xPosBullet = tankObject.gunLeft.x;
-				bulletList[bulletCount].yPosBullet = tankObject.gunLeft.y + 5;
-				bulletCount++;
-			}
-			bulletCount %= BULLET_NUMBER;
-			SetTimer(hWnd, 100, 100, NULL);
-			break;
-		}
-		break;
-
-	case WM_TIMER:
-		hdc = GetDC(hWnd);
-		switch (wParam) {
-		case 100:
-			for (i = 0; i < bulletCount; i++) {
-				tx = bulletList[i].xPosBullet / nWidth;
-				ty = bulletList[i].yPosBullet / nHeight;
-
-				if (iBoard[tx][ty] == 1)							//--- Block
-					bulletList[i].isOn = false;
-
-				if (bulletList[i].dir == 0) {						//--- 0: x-,   2: x+,   1: y-,  3: y+
-					if (bulletList[i].xPosBullet > 0)
-						bulletList[i].xPosBullet -= 10;
-					else
-						bulletList[i].isOn = false;
-				}
-				else if (bulletList[i].dir == 1) {
-					if (bulletList[i].yPosBullet > 0)
-						bulletList[i].yPosBullet -= 10;
-					else
-						bulletList[i].isOn = false;
-				}
-				else if (bulletList[i].dir == 2) {
-					if (bulletList[i].xPosBullet < WindowWidth)
-						bulletList[i].xPosBullet += 10;
-					else
-						bulletList[i].isOn = false;
-				}
-				else if (bulletList[i].dir == 3) {
-					if (bulletList[i].yPosBullet < WindowHeight)
-						bulletList[i].yPosBullet += 10;
-					else
-						bulletList[i].isOn = false;
-				}
-			}
-		}
-		ReleaseDC(hWnd, hdc);
-		InvalidateRect(hWnd, NULL, false);
-		break;
-
-	case WM_DESTROY:
-		PostQuitMessage(0);
-		break;
-	}
-	return(DefWindowProc(hWnd, iMessage, wParam, lParam));
+void DrawPlayer(HDC hdc) {
+    HBRUSH redBrush = CreateSolidBrush(RGB(255, 0, 0));
+    FillRect(hdc, &player, redBrush);
+    DeleteObject(redBrush);
 }
 
-void DrawBoard(HDC hdc)
-{
-	int i;
+void DrawUpDownStage(HDC hdc) {
+    DrawPlayer(hdc);
+    HBRUSH blueBrush = CreateSolidBrush(RGB(0, 0, 255));
 
-	for (i = 0; i <= NUMBER; i++) {
-		MoveToEx(hdc, i * nWidth, 0, NULL);
-		LineTo(hdc, i * nWidth, WindowHeight);
+    for (int i = 0; i < 4; ++i) {
+        Ellipse(hdc, 100, obstacleY[i], 120, obstacleY[i] + 20);
+    }
 
-		MoveToEx(hdc, 0, i * nHeight, NULL);
-		LineTo(hdc, WindowWidth, i * nHeight);
-	}
+    DeleteObject(blueBrush);
 }
 
-void DrawBlock(HDC hdc)
-{
-	HBRUSH oldBrush, newBrush;
-	int i, j;
+void DrawRotatingStage(HDC hdc) {
+    DrawPlayer(hdc);
+    HBRUSH blueBrush = CreateSolidBrush(RGB(0, 0, 255));
 
-	newBrush = CreateSolidBrush(RGB(200, 200, 200));
-	oldBrush = (HBRUSH)SelectObject(hdc, newBrush);
-	for (i = 0; i < NUMBER; i++)
-		for (j = 0; j < NUMBER; j++) {
-			if (iBoard[i][j] == 1) {
-				Rectangle(hdc, i * nWidth, j * nHeight, i * nWidth + nWidth, j * nHeight + nHeight);
-			}
-		}
-	SelectObject(hdc, oldBrush);
-	DeleteObject(newBrush);
+    int centerX = 200, centerY = 200;
+    int radius = 80;
+
+    for (int i = 0; i < 4; ++i) {
+        float a = angle + i * (PI / 2);
+        int x = centerX + (int)(cos(a) * radius);
+        int y = centerY + (int)(sin(a) * radius);
+        Ellipse(hdc, x - 10, y - 10, x + 10, y + 10);
+    }
+
+    DeleteObject(blueBrush);
 }
 
-void DrawTank(HDC hdc, int xP, int yP, int d)
-{
-	HBRUSH hBrush, oBrush;
+LRESULT CALLBACK WndProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam) {
+    switch (msg) {
+    case WM_KEYDOWN:
+        if (wParam == '1') currentMode = UPDOWN;
+        else if (wParam == '2') currentMode = ROTATE;
+        break;
 
-	hBrush = CreateSolidBrush(RGB(255, 0, 255));
-	oBrush = (HBRUSH)SelectObject(hdc, hBrush);
-	Rectangle(hdc, xP * nWidth + 2, yP * nHeight + 2, (xP + 1) * nWidth - 2, (yP + 1) * nHeight - 2);
+    case WM_TIMER:
+        if (currentMode == UPDOWN) {
+            for (int i = 0; i < 4; ++i) {
+                obstacleY[i] += dir[i] * 4;
+                if (obstacleY[i] < 50 || obstacleY[i] > 350) dir[i] *= -1;
+            }
+        }
+        else if (currentMode == ROTATE) {
+            angle += 0.05f;
+            if (angle > 2 * PI) angle -= 2 * PI;
+        }
+        InvalidateRect(hwnd, NULL, TRUE);
+        break;
 
-	switch (d) {
-	case 0:		// direction: left
-		Rectangle(hdc, (xP - 1) * nWidth + 10, yP * nHeight + 15, xP * nWidth, (yP + 1) * nHeight - 15);
-		tankObject.gunLeft.x = (xP - 1) * nWidth + 10;		tankObject.gunLeft.y = yP * nHeight + 15;
-		tankObject.gunRight.x = xP * nWidth;			tankObject.gunRight.y = (yP + 1) * nHeight - 15;
-		break;
-	case 1:		// direction: top
-		Rectangle(hdc, xP * nWidth + 15, (yP - 1) * nHeight + 10, (xP + 1) * nWidth - 15, yP * nHeight);
-		tankObject.gunLeft.x = xP * nWidth + 15;		tankObject.gunLeft.y = (yP - 1) * nHeight + 10;
-		tankObject.gunRight.x = (xP + 1) * nWidth - 15;			tankObject.gunRight.y = yP * nHeight;
-		break;
-	case 2:		// direction: right
-		Rectangle(hdc, (xP + 1) * nWidth, yP * nHeight + 15, (xP + 2) * nWidth - 10, (yP + 1) * nHeight - 15);
-		tankObject.gunLeft.x = (xP + 1) * nWidth;		tankObject.gunLeft.y = yP * nHeight + 15;
-		tankObject.gunRight.x = (xP + 2) * nWidth - 10;			tankObject.gunRight.y = (yP + 1) * nHeight - 15;
-		break;
-	case 3:		// direction: bottom
-		Rectangle(hdc, xP * nWidth + 15, (yP + 1) * nHeight, (xP + 1) * nWidth - 15, (yP + 2) * nHeight - 10);
-		tankObject.gunLeft.x = xP * nWidth + 15;		tankObject.gunLeft.y = (yP + 1) * nHeight;
-		tankObject.gunRight.x = (xP + 1) * nWidth - 15;			tankObject.gunRight.y = (yP + 2) * nHeight - 10;
-		break;
-	}
-	SelectObject(hdc, oBrush);
-	DeleteObject(hBrush);
-}
+    case WM_PAINT: {
+        PAINTSTRUCT ps;
+        HDC hdc = BeginPaint(hwnd, &ps);
 
-void DrawBullet(HDC hdc, int xP, int yP, int d)
-{
-	HBRUSH hBrush, oldBrush;
+        if (currentMode == UPDOWN)
+            DrawUpDownStage(hdc);
+        else if (currentMode == ROTATE)
+            DrawRotatingStage(hdc);
+        else
+            TextOut(hdc, 100, 100, TEXT("1: 위아래 장애물 | 2: 회전 장애물"), 28);
 
-	hBrush = CreateSolidBrush(RGB(0, 255, 255));
-	oldBrush = (HBRUSH)SelectObject(hdc, hBrush);
+        EndPaint(hwnd, &ps);
+        break;
+    }
 
-	switch (d) {				//--- x+: 2,   x-: 0,   y+: 3,   y-: 1
-	case 0:
-		Rectangle(hdc, xP, yP - 7, xP - 10, yP + 3);
-		break;
-	case 1:
-		Rectangle(hdc, xP - 7, yP, xP + 3, yP - 10);
-		break;
-	case 2:
-		Rectangle(hdc, xP, yP - 7, xP + 10, yP + 3);
-		break;
-	case 3:
-		Rectangle(hdc, xP - 7, yP, xP + 3, yP + 10);
-		break;
-	}
-	SelectObject(hdc, oldBrush);
-	DeleteObject(hBrush);
+    case WM_DESTROY:
+        KillTimer(hwnd, TIMER_ID);
+        PostQuitMessage(0);
+        break;
+    }
+    return DefWindowProc(hwnd, msg, wParam, lParam);
 }
