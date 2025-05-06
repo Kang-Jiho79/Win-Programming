@@ -57,8 +57,10 @@ struct Cell
 	bool		cover;	// 닫혀있는지
 };
 
-Cell cell[tablecount][tablecount];
-COLORREF colors[5] = { RGB(255,0,0),RGB(0,255,0),RGB(0,0,255),RGB(255,255,0),RGB(255,0,255) };
+Cell		cell[tablecount][tablecount];
+COLORREF	colors[5] = { RGB(255,0,0),RGB(0,255,0),RGB(0,0,255),RGB(255,255,0),RGB(255,0,255) };
+int			collectpie = 0;
+bool		game = false;
 
 void gamesetting()
 {
@@ -173,7 +175,30 @@ void drawcell(HDC hdc, Cell c)
 		SetTextColor(hdc, RGB(0, 0, 0));
 	}
 }
-
+void checkpie()
+{
+	for (int i = 0; i < 5; ++i) {
+		int check = 0;
+		for (int y = 0; y<tablecount;++y)
+			for (int x = 0; x < tablecount; ++x)
+				if (cell[y][x].color == colors[i] && !cell[y][x].cover) {
+					check++;
+				}
+		if (check == 4)
+			collectpie++;
+	}
+}
+void useitem()
+{
+	for (int y = 0; y < tablecount; ++y)
+		for (int x = 0; x < tablecount; ++x)
+			if (cell[y][x].type == 1 && !cell[y][x].cover) {
+				for (int i = 0; i < tablecount; ++i)
+					for (int j = 0; j < tablecount; ++j)
+						if (cell[i][j].type == 1 && cell[i][j].cover && cell[i][j].color == cell[y][x].color)
+							cell[i][j].cover = false;
+			}
+}
 LRESULT CALLBACK WndProc(HWND hWnd, UINT iMessage, WPARAM wParam, LPARAM lParam)
 {
 	PAINTSTRUCT ps;
@@ -219,8 +244,17 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT iMessage, WPARAM wParam, LPARAM lParam)
 		for (int i = 0; i < tablecount; i++) {
 			for (int j = 0; j < tablecount; j++) {
 				POINT pt = { (cell[i][j].pt.x * cellsize) + cellsize / 2,(cell[i][j].pt.y * cellsize) + cellsize / 2 };
-				if (x >= pt.x - cellsize/2 && x <= pt.x + cellsize/2&& y >= pt.y - cellsize/2 && y <= pt.y + cellsize/2)
+				if (x >= pt.x - cellsize / 2 && x <= pt.x + cellsize / 2 && y >= pt.y - cellsize / 2 && y <= pt.y + cellsize / 2) {
 					cell[i][j].cover = false;
+					if (cell[i][j].type == 1) {
+						checkpie();
+					}
+					else if (cell[i][j].type == 2) {
+						useitem();
+					}
+					else if (cell[i][j].type == 3)
+						PostQuitMessage(0);
+				}
 			}
 		}
 		InvalidateRect(hWnd, NULL, FALSE);
