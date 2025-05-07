@@ -209,7 +209,10 @@
     </ClCompile>
     <ClCompile Include="4-1.cpp" />
     <ClCompile Include="4-2.cpp" />
-    <ClCompile Include="4-3.cpp" />
+    <ClCompile Include="4-3.cpp">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">false</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">false</ExcludedFromBuild>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ResourceCompile Include="4-3Resource.rc" />

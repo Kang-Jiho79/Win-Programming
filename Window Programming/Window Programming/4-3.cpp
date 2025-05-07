@@ -4,6 +4,7 @@
 #include <stdlib.h>
 #include <time.h>
 #include <math.h>
+#include <string>
 
 #include "resource1.h"
 
@@ -57,11 +58,13 @@ struct Cell
 	int			pie;	// 0:파이아님 1:상좌 2:상우 3:하좌 4:하우
 	COLORREF	color;	// 파이색깔
 	bool		cover;	// 닫혀있는지
+	bool		collect;// 다 열려있는지
 };
 
 Cell		cell[tablecount][tablecount];
 COLORREF	colors[5] = { RGB(255,0,0),RGB(0,255,0),RGB(0,0,255),RGB(255,255,0),RGB(255,0,255) };
 int			collectpie = 0;
+int			hintcount = 0;
 bool		game = false;
 bool		hint = false;
 bool		score = false;
@@ -140,7 +143,9 @@ void drawitem(HDC hdc, POINT pt)
 }
 void drawcell(HDC hdc, Cell c)
 {
-	if (c.cover) return;
+	if (!hint) {
+		if (c.cover) return;
+	}
 	POINT pt = { (c.pt.x * cellsize) + cellsize / 2,(c.pt.y * cellsize) + cellsize / 2 };
 	if (c.type == 0) {
 		HPEN pen = CreatePen(BS_SOLID, 1, RGB(255, 0, 0));
@@ -181,15 +186,21 @@ void drawcell(HDC hdc, Cell c)
 }
 void checkpie()
 {
+	int check = 0;
 	for (int i = 0; i < 5; ++i) {
-		int check = 0;
 		for (int y = 0; y<tablecount;++y)
 			for (int x = 0; x < tablecount; ++x)
-				if (cell[y][x].color == colors[i] && !cell[y][x].cover) {
+				if (cell[y][x].color == colors[i] && !cell[y][x].cover && !cell[y][x].collect) {
 					check++;
+					if (check == 4) {
+						collectpie++;
+						for (int j = 0; j < tablecount; ++j)
+							for (int k = 0; k < tablecount; ++k)
+								if (cell[j][k].color == colors[i])
+									cell[j][k].collect = true;
+					}
 				}
-		if (check == 4)
-			collectpie++;
+		check = 0;
 	}
 }
 void useitem()
@@ -212,7 +223,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT iMessage, WPARAM wParam, LPARAM lParam)
 	switch (iMessage) {
 	case WM_CREATE:
 		gamesetting();
-		SetTimer(hWnd, 1, 5000, NULL);
+		SetTimer(hWnd, 1, 1000, NULL);
 		break;
 	case WM_PAINT:
 	{
@@ -222,13 +233,18 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT iMessage, WPARAM wParam, LPARAM lParam)
 		hBitmap = CreateCompatibleBitmap(hDC, rt.right, rt.bottom);
 		SelectObject(mDC, (HBITMAP)hBitmap);
 		Rectangle(mDC, 0, 0, rt.right, rt.bottom);
-		drawtable(mDC);
-		for (int i = 0; i < tablecount; i++) {
-			for (int j = 0; j < tablecount; j++)
-				drawcell(mDC, cell[i][j]);
+		if (game) {
+			drawtable(mDC);
+			for (int i = 0; i < tablecount; i++) {
+				for (int j = 0; j < tablecount; j++)
+					drawcell(mDC, cell[i][j]);
+			}
+			if (score) {
+				TCHAR ch[10];
+				wsprintf(ch, L"점수 : %d", collectpie);
+				TextOut(mDC, 0, tablecount * cellsize + 20, ch, _tcslen(ch));
+			}
 		}
-		if (score)
-			TextOut(mDC, 0, tablecount * cellsize + 20, L"점수 : " + collectpie, 10);
 		BitBlt(hDC, 0, 0, rt.right, rt.bottom, mDC, 0, 0, SRCCOPY);
 		DeleteDC(mDC);
 		DeleteObject(hBitmap);
@@ -257,7 +273,11 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT iMessage, WPARAM wParam, LPARAM lParam)
 		break;
 	case WM_TIMER: {	
 		if (hint) {
-
+			hintcount++;
+			if (hintcount == 3) {
+				hint = false;
+				hintcount = 0;
+			}
 			InvalidateRect(hWnd, NULL, FALSE);
 		}
 		
@@ -266,21 +286,24 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT iMessage, WPARAM wParam, LPARAM lParam)
 		break;
 	case WM_LBUTTONDOWN:
 	{
-		int y = HIWORD(lParam);
-		int x = LOWORD(lParam);
-		for (int i = 0; i < tablecount; i++) {
-			for (int j = 0; j < tablecount; j++) {
-				POINT pt = { (cell[i][j].pt.x * cellsize) + cellsize / 2,(cell[i][j].pt.y * cellsize) + cellsize / 2 };
-				if (x >= pt.x - cellsize / 2 && x <= pt.x + cellsize / 2 && y >= pt.y - cellsize / 2 && y <= pt.y + cellsize / 2) {
-					cell[i][j].cover = false;
-					if (cell[i][j].type == 1) {
-						checkpie();
+		if (game && !hint) {
+			int y = HIWORD(lParam);
+			int x = LOWORD(lParam);
+			for (int i = 0; i < tablecount; i++) {
+				for (int j = 0; j < tablecount; j++) {
+					POINT pt = { (cell[i][j].pt.x * cellsize) + cellsize / 2,(cell[i][j].pt.y * cellsize) + cellsize / 2 };
+					if (x >= pt.x - cellsize / 2 && x <= pt.x + cellsize / 2 && y >= pt.y - cellsize / 2 && y <= pt.y + cellsize / 2) {
+						cell[i][j].cover = false;
+						if (cell[i][j].type == 1) {
+							checkpie();
+						}
+						else if (cell[i][j].type == 2) {
+							useitem();
+							checkpie();
+						}
+						else if (cell[i][j].type == 3)
+							PostQuitMessage(0);
 					}
-					else if (cell[i][j].type == 2) {
-						useitem();
-					}
-					else if (cell[i][j].type == 3)
-						PostQuitMessage(0);
 				}
 			}
 		}
