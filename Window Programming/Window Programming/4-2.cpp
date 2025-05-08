@@ -145,6 +145,32 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 
     case WM_LBUTTONUP:
     {
+        POINT pt;
+        POINT pt1, pt2;
+        if (ptLT.x < ptRB.x && ptLT.y < ptRB.y) {
+            pt1.x = ptLT.x;
+            pt1.y = ptLT.y;
+            pt2.x = ptRB.x;
+            pt2.y = ptRB.y;
+        }
+        else if (ptLT.x > ptRB.x && ptLT.y < ptRB.y) {
+            pt1.x = ptRB.x;
+            pt1.y = ptLT.y;
+            pt2.x = ptLT.x;
+            pt2.y = ptRB.y;
+        }
+        else if (ptLT.x < ptRB.x && ptLT.y > ptRB.y) {
+            pt1.x = ptLT.x;
+            pt1.y = ptRB.y;
+            pt2.x = ptRB.x;
+            pt2.y = ptLT.y;
+        }
+        else {
+            pt1.x = ptRB.x;
+            pt1.y = ptRB.y;
+            pt2.x = ptLT.x;
+            pt2.y = ptLT.y;
+        }
         for (int i = 0; i < shapecount; ++i) {
 
         }
