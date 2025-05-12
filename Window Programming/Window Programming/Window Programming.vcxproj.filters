@@ -22,6 +22,9 @@
     <Filter Include="소스 파일\챕터 4">
       <UniqueIdentifier>{3af5e653-85f9-4251-aac3-4edbd3126183}</UniqueIdentifier>
     </Filter>
+    <Filter Include="소스 파일\챕터 5">
+      <UniqueIdentifier>{a43aa706-85d8-4c03-abb9-bd963b4010d4}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="framework.h">
@@ -107,6 +110,12 @@
     <ClCompile Include="4-3.cpp">
       <Filter>소스 파일\챕터 4</Filter>
     </ClCompile>
+    <ClCompile Include="5-1.cpp">
+      <Filter>소스 파일\챕터 5</Filter>
+    </ClCompile>
+    <ClCompile Include="5-2.cpp">
+      <Filter>소스 파일\챕터 5</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ResourceCompile Include="Window Programming.rc">
@@ -121,6 +130,12 @@
       <Filter>리소스 파일</Filter>
     </Image>
     <Image Include="Window Programming.ico">
+      <Filter>리소스 파일</Filter>
+    </Image>
+    <Image Include="images.bmp">
+      <Filter>리소스 파일</Filter>
+    </Image>
+    <Image Include="images2.bmp">
       <Filter>리소스 파일</Filter>
     </Image>
   </ItemGroup>

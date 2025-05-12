@@ -86,6 +86,7 @@ void settinggame()
         }
     for (int i = 0; i < shapecount; ++i)
         shape[i].exist = false;
+    currentcolor = colors[0];
 }
 
 // 판 그리기
@@ -139,13 +140,22 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
     {
         ptRB.x = LOWORD(lParam);
         ptRB.y = HIWORD(lParam);
+        if (ptRB.x < ptLT.x) {
+            int x = ptLT.x;
+            ptLT.x = ptRB.x;
+            ptRB.x = x;
+        }
+        if (ptRB.y < ptLT.y) {
+            int y = ptLT.y;
+            ptLT.y = ptRB.y;
+            ptRB.y = y;
+        }
         InvalidateRect(hWnd, nullptr, true);
     }
     break;
 
     case WM_LBUTTONUP:
     {
-        POINT pt;
         POINT pt1, pt2;
         if (ptLT.x < ptRB.x && ptLT.y < ptRB.y) {
             pt1.x = ptLT.x;
@@ -153,26 +163,15 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
             pt2.x = ptRB.x;
             pt2.y = ptRB.y;
         }
-        else if (ptLT.x > ptRB.x && ptLT.y < ptRB.y) {
-            pt1.x = ptRB.x;
-            pt1.y = ptLT.y;
-            pt2.x = ptLT.x;
-            pt2.y = ptRB.y;
-        }
-        else if (ptLT.x < ptRB.x && ptLT.y > ptRB.y) {
-            pt1.x = ptLT.x;
-            pt1.y = ptRB.y;
-            pt2.x = ptRB.x;
-            pt2.y = ptLT.y;
-        }
-        else {
-            pt1.x = ptRB.x;
-            pt1.y = ptRB.y;
-            pt2.x = ptLT.x;
-            pt2.y = ptLT.y;
-        }
         for (int i = 0; i < shapecount; ++i) {
-
+            if (!shape[i].exist) {
+                shape[i].start.x = pt1.x / cellsize;
+                shape[i].start.y = pt1.y / cellsize;
+                shape[i].end.x = pt2.x / cellsize;
+                shape[i].end.y = pt2.y / cellsize;
+                shape[i].exist = true;
+                shape[i].color = currentcolor;
+            }
         }
         act = false;
         InvalidateRect(hWnd, nullptr, true);
