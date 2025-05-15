@@ -207,7 +207,9 @@
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">true</ExcludedFromBuild>
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</ExcludedFromBuild>
     </ClCompile>
-    <ClCompile Include="4-1.cpp" />
+    <ClCompile Include="4-1.cpp">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</ExcludedFromBuild>
+    </ClCompile>
     <ClCompile Include="4-2.cpp">
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">true</ExcludedFromBuild>
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</ExcludedFromBuild>
@@ -220,13 +222,35 @@
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">true</ExcludedFromBuild>
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</ExcludedFromBuild>
     </ClCompile>
-    <ClCompile Include="5-2.cpp" />
+    <ClCompile Include="5-2.cpp">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">false</ExcludedFromBuild>
+    </ClCompile>
+    <ClCompile Include="5-3.cpp">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</ExcludedFromBuild>
+    </ClCompile>
+    <ClCompile Include="5-4.cpp">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</ExcludedFromBuild>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ResourceCompile Include="4-3Resource.rc" />
     <ResourceCompile Include="Window Programming.rc" />
   </ItemGroup>
   <ItemGroup>
+    <Image Include="ch2\d1.BMP" />
+    <Image Include="ch2\d2.BMP" />
+    <Image Include="ch2\d3.BMP" />
+    <Image Include="ch2\d4.BMP" />
+    <Image Include="ch2\d5.BMP" />
+    <Image Include="ch2\d6.BMP" />
+    <Image Include="ch2\d7.BMP" />
+    <Image Include="ch\bitmap3.bmp" />
+    <Image Include="ch\ch1.BMP" />
+    <Image Include="ch\ch2.BMP" />
+    <Image Include="ch\ch3.BMP" />
+    <Image Include="ch\ch4.BMP" />
+    <Image Include="ch\ch5.BMP" />
+    <Image Include="ch\ch6.BMP" />
     <Image Include="images.bmp" />
     <Image Include="images2.bmp" />
     <Image Include="small.ico" />

@@ -57,7 +57,7 @@ struct Cell
 
 Cell cell[maxcell][maxcell];
 
-HBITMAP hBitmap = (HBITMAP)LoadBitmap(g_hInst, MAKEINTRESOURCE(IDB_BITMAP1));
+HBITMAP hBitmap;
 POINT   ptLT;				// 시작점
 POINT   ptRB;				// 끝나는점
 POINT	choose = { 0,0 };	// 선택한 cell
@@ -190,6 +190,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT iMessage, WPARAM wParam, LPARAM lParam)
 	switch (iMessage) {
 	case WM_CREATE:
 		SetTimer(hWnd, 1, 100, NULL);
+		hBitmap = (HBITMAP)LoadBitmap(g_hInst, MAKEINTRESOURCE(IDB_BITMAP1));
 		break;
 	case WM_PAINT:
 	{

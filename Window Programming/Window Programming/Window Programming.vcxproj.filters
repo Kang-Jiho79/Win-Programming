@@ -116,6 +116,12 @@
     <ClCompile Include="5-2.cpp">
       <Filter>소스 파일\챕터 5</Filter>
     </ClCompile>
+    <ClCompile Include="5-3.cpp">
+      <Filter>소스 파일\챕터 5</Filter>
+    </ClCompile>
+    <ClCompile Include="5-4.cpp">
+      <Filter>소스 파일\챕터 5</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ResourceCompile Include="Window Programming.rc">
@@ -136,6 +142,48 @@
       <Filter>리소스 파일</Filter>
     </Image>
     <Image Include="images2.bmp">
+      <Filter>리소스 파일</Filter>
+    </Image>
+    <Image Include="ch\ch1.BMP">
+      <Filter>리소스 파일</Filter>
+    </Image>
+    <Image Include="ch\ch2.BMP">
+      <Filter>리소스 파일</Filter>
+    </Image>
+    <Image Include="ch\bitmap3.bmp">
+      <Filter>리소스 파일</Filter>
+    </Image>
+    <Image Include="ch\ch3.BMP">
+      <Filter>리소스 파일</Filter>
+    </Image>
+    <Image Include="ch\ch4.BMP">
+      <Filter>리소스 파일</Filter>
+    </Image>
+    <Image Include="ch\ch5.BMP">
+      <Filter>리소스 파일</Filter>
+    </Image>
+    <Image Include="ch\ch6.BMP">
+      <Filter>리소스 파일</Filter>
+    </Image>
+    <Image Include="ch2\d1.BMP">
+      <Filter>리소스 파일</Filter>
+    </Image>
+    <Image Include="ch2\d2.BMP">
+      <Filter>리소스 파일</Filter>
+    </Image>
+    <Image Include="ch2\d3.BMP">
+      <Filter>리소스 파일</Filter>
+    </Image>
+    <Image Include="ch2\d4.BMP">
+      <Filter>리소스 파일</Filter>
+    </Image>
+    <Image Include="ch2\d5.BMP">
+      <Filter>리소스 파일</Filter>
+    </Image>
+    <Image Include="ch2\d6.BMP">
+      <Filter>리소스 파일</Filter>
+    </Image>
+    <Image Include="ch2\d7.BMP">
       <Filter>리소스 파일</Filter>
     </Image>
   </ItemGroup>
