@@ -42,6 +42,9 @@
     <ClInclude Include="resource1.h">
       <Filter>헤더 파일</Filter>
     </ClInclude>
+    <ClInclude Include="resource2.h">
+      <Filter>헤더 파일</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="2-1.cpp">
@@ -122,12 +125,18 @@
     <ClCompile Include="5-4.cpp">
       <Filter>소스 파일\챕터 5</Filter>
     </ClCompile>
+    <ClCompile Include="5-7.cpp">
+      <Filter>소스 파일\챕터 5</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ResourceCompile Include="Window Programming.rc">
       <Filter>리소스 파일</Filter>
     </ResourceCompile>
     <ResourceCompile Include="4-3Resource.rc">
+      <Filter>리소스 파일</Filter>
+    </ResourceCompile>
+    <ResourceCompile Include="Resource.rc">
       <Filter>리소스 파일</Filter>
     </ResourceCompile>
   </ItemGroup>
