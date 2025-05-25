@@ -18,6 +18,24 @@
 #define IDB_Ch2_6                       118
 #define IDB_Ch2_7                       119
 #define IDR_MENU1                       120
+#define IDB_SKY                         121
+#define IDB_GROUND                      122
+#define IDB_BOMB                        125
+#define IDD_DIALOG1                     126
+#define IDC_RECTANGLE                   1005
+#define IDC_CIRCLE                      1007
+#define IDC_SMALL                       1008
+#define IDC_MEDIUM                      1009
+#define IDC_RADIO7                      1010
+#define IDC_LARGE                       1010
+#define IDC_SIZE                        1011
+#define IDC_SHAPE                       1012
+#define IDC_RED                         1013
+#define IDC_BLUE                        1014
+#define IDC_DRAW                        1015
+#define IDC_MOVE                        1016
+#define IDC_QUIT                        1017
+#define IDC_COLOR                       1018
 #define ID_GAME_START                   40020
 #define ID_GAME_END                     40021
 #define ID_TARGET_64                    40022
@@ -30,9 +48,9 @@
 // 
 #ifdef APSTUDIO_INVOKED
 #ifndef APSTUDIO_READONLY_SYMBOLS
-#define _APS_NEXT_RESOURCE_VALUE        121
+#define _APS_NEXT_RESOURCE_VALUE        128
 #define _APS_NEXT_COMMAND_VALUE         40027
-#define _APS_NEXT_CONTROL_VALUE         1001
+#define _APS_NEXT_CONTROL_VALUE         1019
 #define _APS_NEXT_SYMED_VALUE           101
 #endif
 #endif

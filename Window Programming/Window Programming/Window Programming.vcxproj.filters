@@ -25,6 +25,9 @@
     <Filter Include="소스 파일\챕터 5">
       <UniqueIdentifier>{a43aa706-85d8-4c03-abb9-bd963b4010d4}</UniqueIdentifier>
     </Filter>
+    <Filter Include="소스 파일\챕터 6">
+      <UniqueIdentifier>{7ad53775-8e0f-435b-90f3-d411c3b05ad9}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="framework.h">
@@ -128,6 +131,21 @@
     <ClCompile Include="5-7.cpp">
       <Filter>소스 파일\챕터 5</Filter>
     </ClCompile>
+    <ClCompile Include="5-5.cpp">
+      <Filter>소스 파일\챕터 5</Filter>
+    </ClCompile>
+    <ClCompile Include="5-6.cpp">
+      <Filter>소스 파일\챕터 5</Filter>
+    </ClCompile>
+    <ClCompile Include="5-8.cpp">
+      <Filter>소스 파일\챕터 5</Filter>
+    </ClCompile>
+    <ClCompile Include="6-1.cpp">
+      <Filter>소스 파일\챕터 6</Filter>
+    </ClCompile>
+    <ClCompile Include="Defalut.cpp">
+      <Filter>소스 파일</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ResourceCompile Include="Window Programming.rc">
@@ -193,6 +211,18 @@
       <Filter>리소스 파일</Filter>
     </Image>
     <Image Include="ch2\d7.BMP">
+      <Filter>리소스 파일</Filter>
+    </Image>
+    <Image Include="Maps\sky.bmp">
+      <Filter>리소스 파일</Filter>
+    </Image>
+    <Image Include="Maps\ground.bmp">
+      <Filter>리소스 파일</Filter>
+    </Image>
+    <Image Include="Maps\bomb.bmp">
+      <Filter>리소스 파일</Filter>
+    </Image>
+    <Image Include="Maps\bomb.png">
       <Filter>리소스 파일</Filter>
     </Image>
   </ItemGroup>
