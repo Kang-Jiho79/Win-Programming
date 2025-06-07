@@ -1,4 +1,5 @@
-#pragma comment (lib, "msimg32.lib")
+ï»¿#pragma comment (lib, "msimg32.lib")
+#pragma comment (lib,"Gdiplus.lib")
 #define _CRT_SECURE_NO_WARNINGS
 
 #include <Windows.h>
@@ -7,6 +8,9 @@
 #include <stdlib.h>
 #include <atlImage.h>
 #include <cmath>
+#include <gdiplus.h>
+using namespace Gdiplus;
+
 
 #define line 4
 #define startcount 2
@@ -57,9 +61,9 @@ int WINAPI WinMain(_In_ HINSTANCE hInstance, _In_opt_ HINSTANCE hPrevinstance, _
 	return Message.wParam;
 }
 
-int				page = 0;										// 0 : ½ÃÀÛÈ­¸é, 1 : ÀÌµ¿ ÆäÀÌÁö, 2 : ÀüÅõ ÆäÀÌÁö, 3 : ÀÌº¥Æ® ÆäÀÌÁö, 4 : ¼ö¼ö²²³¢ ÆäÀÌÁö, 5 : Áß°£º¸½º ÆäÀÌÁö, 6 : ÃÖÁ¾º¸½º ÆäÀÌÁö
+int				page = 0;										// 0 : ì‹œì‘í™”ë©´, 1 : ì´ë™ í˜ì´ì§€, 2 : ì „íˆ¬ í˜ì´ì§€, 3 : ì´ë²¤íŠ¸ í˜ì´ì§€, 4 : ìˆ˜ìˆ˜ê»˜ë¼ í˜ì´ì§€, 5 : ì¤‘ê°„ë³´ìŠ¤ í˜ì´ì§€, 6 : ìµœì¢…ë³´ìŠ¤ í˜ì´ì§€
 
-// 2048 ºí·Ï
+// 2048 ë¸”ë¡
 struct _2048NumBlock
 {
 	POINT			rpt;
@@ -67,9 +71,9 @@ struct _2048NumBlock
 	POINT			dpt;
 	int				num;
 	int				size;
-	int				type;										// 0 : ±âº», 1 : ? Ç¥½Ã 2 : ¼±ÅÃ(»ö±ò¹Ù²Ù±â) 3 : ? ¼±ÅÃ
+	int				type;										// 0 : ê¸°ë³¸, 1 : ? í‘œì‹œ 2 : ì„ íƒ(ìƒ‰ê¹”ë°”ê¾¸ê¸°) 3 : ? ì„ íƒ
 };
-// 2048 º¸µå
+// 2048 ë³´ë“œ
 struct _2048Board
 {
 	POINT pt;
@@ -77,27 +81,29 @@ struct _2048Board
 	int height;
 	int arrtype[line][line];
 };
-// ¸ó½ºÅÍ
+// ëª¬ìŠ¤í„°
 struct _mob
 {
 	int hp;
 	int atk;
 };
 
-_2048NumBlock	numblock[line * line];							// 2048 ºí·Ï
-_2048Board		board;											// 2048 º¸µå
-int				_2048arrow;										// 2048 ¹æÇâ
-bool			_2048move = false;								// 2048 ¿òÁ÷ÀÌ´Â ÁßÀÎÁö
+_2048NumBlock	numblock[line * line];							// 2048 ë¸”ë¡
+_2048Board		board;											// 2048 ë³´ë“œ
+int				_2048arrow;										// 2048 ë°©í–¥
+bool			_2048move = false;								// 2048 ì›€ì§ì´ëŠ” ì¤‘ì¸ì§€
 bool			attackCheck = false, defendCheck = false;
 int				playeratk = 0;
 int				blockcount = 0;
-bool			gameover = false;
+bool			gameover = false, gameclear = false;
+int				gametime = 0, battlecount = 0, itemusecount = 0;
 
 int				playerMove = 0, playerAttack = 0, playerDefend = 0, mobAttack = 0, MoveturnCnt = 10, playerHp = 5, battleSel = -1;
-POINT			start = { 0,0 };
-_mob mob = { 6, 0 };
+int				bossPattern = 0, bossPatternStack = 0, bossPhase = 1;
+POINT			start = { 0,0 }, curtain = { 0,0 };
+_mob			mob = { 6, 0 };
 
-// 2048 º¸µå ÃÊ±â¼¼ÆÃ
+// 2048 ë³´ë“œ ì´ˆê¸°ì„¸íŒ…
 void	_2048setting(RECT rt)
 {
 	board.pt = { rt.right / 2 - boardsize / 2 , rt.top + 50 };
@@ -131,7 +137,7 @@ void	_2048setting(RECT rt)
 		}
 	}
 }
-// 2048 ´ÙÀ½Ä­ÀÇ Å¸ÀÔ
+// 2048 ë‹¤ìŒì¹¸ì˜ íƒ€ì…
 int		_2048nextarrtype(_2048NumBlock nb)
 {
 	if (nb.num == 0) return 2;
@@ -152,7 +158,7 @@ int		_2048nextarrtype(_2048NumBlock nb)
 		return board.arrtype[nb.bpt.y + 1][nb.bpt.x];
 	}
 }
-// 2048 ½ÃÀÛÀü ¿òÁ÷ÀÓ È®ÀÎ
+// 2048 ì‹œì‘ì „ ì›€ì§ì„ í™•ì¸
 int		_2048startingmovecheck(_2048NumBlock& nb)
 {
 	if (nb.num == 0) return 0;
@@ -221,7 +227,7 @@ int		_2048startingmovecheck(_2048NumBlock& nb)
 	}
 	return 1;
 }
-// 2048 ÀÌµ¿Áß È®ÀÎ
+// 2048 ì´ë™ì¤‘ í™•ì¸
 void	_2048movingblock(_2048NumBlock& nb)
 {
 	if (nb.num == 0 || (nb.dpt.x == 0 && nb.dpt.y == 0)) return;
@@ -242,7 +248,7 @@ void	_2048movingblock(_2048NumBlock& nb)
 		nb.rpt.y--;
 	}
 }
-// 2048 »õ·Î¿î ºí·Ï ¸¸µé±â
+// 2048 ìƒˆë¡œìš´ ë¸”ë¡ ë§Œë“¤ê¸°
 void	_2048createblock()
 {
 	while (true)
@@ -267,7 +273,7 @@ void	_2048createblock()
 		}
 	}
 }
-// 2048 ºí·°ÀÇ À§Ä¡¸¦ ¼­·Î ¹Ù²Ù±â
+// 2048 ë¸”ëŸ­ì˜ ìœ„ì¹˜ë¥¼ ì„œë¡œ ë°”ê¾¸ê¸°
 void	_2048blockchange()
 {
 	int count = 0;
@@ -296,7 +302,7 @@ void	_2048blockchange()
 LRESULT CALLBACK WndProc(HWND hWnd, UINT iMsg, WPARAM wParam, LPARAM lParam) {
 	HDC hDC, mDC;
 	PAINTSTRUCT ps;
-	static TCHAR showTurn[20];
+	static TCHAR showTurn[20], t_gametime[20], t_battlecount[20], t_itemusecount[20], t_quitmessage[20];
 	static HBITMAP hBitmap;
 	static RECT clRect, nextMap[3], answer[3], battle[3], question, startbtm;
 
@@ -307,13 +313,16 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT iMsg, WPARAM wParam, LPARAM lParam) {
 	static CImage _chest[3];
 	static CImage _icon[18];
 	static CImage _question[10];
-	static CImage _background[4];
+	static CImage _background[5];
 	static CImage _mob[6];
 	static CImage _playeratk[4];
 	static CImage _title;
+	static CImage _item_info[3];
+	static CImage _gameclear;
+	static CImage _gameover;
 
-	static POINT m, player, menu, chest; // ¸¶¿ì½º, ÇÃ·¹ÀÌ¾î, ¸Ş´ºÃ¢, »óÀÚ À§Ä¡
-	static int moveCheck, nextSel, answerSel, randQ; // 2048 ¸ø¿òÁ÷ÀÌ´Â°Å È®ÀÎ, ´ÙÀ½ ½ºÅ×ÀÌÁö ¼±ÅÃ, ´ä ¼±ÅÃ, ¹®Á¦ ¼±ÅÃ
+	static POINT m, player, menu, chest; // ë§ˆìš°ìŠ¤, í”Œë ˆì´ì–´, ë©”ë‰´ì°½, ìƒì ìœ„ì¹˜
+	static int moveCheck, nextSel, answerSel, randQ; // 2048 ëª»ì›€ì§ì´ëŠ”ê±° í™•ì¸, ë‹¤ìŒ ìŠ¤í…Œì´ì§€ ì„ íƒ, ë‹µ ì„ íƒ, ë¬¸ì œ ì„ íƒ
 	static int stage;
 	static bool chestcheck = false, chestcurse, chestnothing = false;
 	static RECT eventcheck, yes, no;
@@ -386,6 +395,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT iMsg, WPARAM wParam, LPARAM lParam) {
 		_background[1].Load(_T("background\\menu.png"));
 		_background[2].Load(_T("background\\status.png"));
 		_background[3].Load(_T("background\\text.png"));
+		_background[4].Load(_T("background\\curtain.png"));
 		_chest[0].Load(_T("chest\\closedchest.png"));
 		_chest[1].Load(_T("chest\\opendchest.png"));
 		_chest[2].Load(_T("chest\\opendcursechest.png"));
@@ -400,6 +410,11 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT iMsg, WPARAM wParam, LPARAM lParam) {
 		_playeratk[2].Load(_T("playeratk\\playeratk_3.png"));
 		_playeratk[3].Load(_T("playeratk\\playeratk_4.png"));
 		_title.Load(_T("map\\title.png"));
+		_item_info[0].Load(_T("item_info\\item_info1.png"));
+		_item_info[1].Load(_T("item_info\\item_info2.png"));
+		_item_info[2].Load(_T("item_info\\item_info3.png"));
+		_gameclear.Load(_T("background\\victory.png"));
+		_gameover.Load(_T("background\\defeat.png"));
 
 		start = { 0,0 };
 		player.x = clRect.right / 2 - boardsize / 2 - 200;
@@ -440,29 +455,28 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT iMsg, WPARAM wParam, LPARAM lParam) {
 
 		SelectObject(mDC, (HBITMAP)hBitmap);
 
-		FillRect(mDC, &clRect, (HBRUSH)GetStockObject(BLACK_BRUSH)); // ¸Ê ¹ÙÅÁ
-		if (gameover) PostQuitMessage(0);
+		FillRect(mDC, &clRect, (HBRUSH)GetStockObject(BLACK_BRUSH)); // ë§µ ë°”íƒ•
 		if (page != 0) {
-			if (page == 5) _map[3].Draw(mDC, 0, 0, clRect.right, clRect.bottom, start.x, 0, _map[3].GetWidth(), _map[3].GetHeight()); // ¸Ê ±×¸®±â (page, stage¿¡ µû¶ó ´Ş¶óÁü)
+			if (page == 5) _map[3].Draw(mDC, 0, 0, clRect.right, clRect.bottom, start.x, 0, _map[3].GetWidth(), _map[3].GetHeight()); // ë§µ ê·¸ë¦¬ê¸° (page, stageì— ë”°ë¼ ë‹¬ë¼ì§)
 			else if (stage >= 11) _map[2].Draw(mDC, 0, 0, clRect.right, clRect.bottom, start.x, 0, _map[2].GetWidth(), _map[2].GetHeight());
 			else if (stage >= 6) _map[1].Draw(mDC, 0, 0, clRect.right, clRect.bottom, start.x, 0, _map[1].GetWidth(), _map[1].GetHeight());
 			else if (stage >= 1) _map[0].Draw(mDC, 0, 0, clRect.right, clRect.bottom, start.x, 0, _map[0].GetWidth(), _map[0].GetHeight());
 
-			_background[0].Draw(mDC, board.pt.x - 20, board.pt.y - 20, boardsize + 40, boardsize + 40, 0, 0, _background[0].GetWidth(), _background[0].GetHeight()); // 2048 ¹è°æ
-			_background[2].Draw(mDC, board.pt.x - 500, board.pt.y + 20, 400, 450, 0, 0, _background[2].GetWidth(), _background[2].GetHeight()); // »óÅÂ Ã¢
+			_background[0].Draw(mDC, board.pt.x - 20, board.pt.y - 20, boardsize + 40, boardsize + 40, 0, 0, _background[0].GetWidth(), _background[0].GetHeight()); // 2048 ë°°ê²½
+			_background[2].Draw(mDC, board.pt.x - 500, board.pt.y + 20, 400, 450, 0, 0, _background[2].GetWidth(), _background[2].GetHeight()); // ìƒíƒœ ì°½
 
 			SetBkMode(mDC, TRANSPARENT);
 			SetTextColor(mDC, RGB(255, 255, 255));
 
-			// »óÅÂ Ã¢ ³»¿ë (½ºÅ×ÀÌÁö, ÅÏ, Ã¼·Â, ¾ÆÀÌÅÛ)
+			// ìƒíƒœ ì°½ ë‚´ìš© (ìŠ¤í…Œì´ì§€, í„´, ì²´ë ¥, ì•„ì´í…œ)
 
-			wsprintf(showTurn, L"%d ½ºÅ×ÀÌÁö", stage);
+			wsprintf(showTurn, L"%d ìŠ¤í…Œì´ì§€", stage);
 			TextOut(mDC, board.pt.x - 470, board.pt.y + 50, showTurn, lstrlen(showTurn));
 			if (page == 2 || page == 5) {
-				wsprintf(showTurn, L"´ÙÀ½ Çàµ¿±îÁö %d ÅÏ", MoveturnCnt);
+				wsprintf(showTurn, L"ë‹¤ìŒ í–‰ë™ê¹Œì§€ %d í„´", MoveturnCnt);
 			}
 			else {
-				wsprintf(showTurn, L"´ÙÀ½ ½ºÅ×ÀÌÁö ¼±ÅÃ±îÁö %d ÅÏ", MoveturnCnt);
+				wsprintf(showTurn, L"ë‹¤ìŒ ìŠ¤í…Œì´ì§€ ì„ íƒê¹Œì§€ %d í„´", MoveturnCnt);
 			}
 			TextOut(mDC, board.pt.x - 470, board.pt.y + 90, showTurn, lstrlen(showTurn));
 
@@ -472,16 +486,16 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT iMsg, WPARAM wParam, LPARAM lParam) {
 
 			if (items[0]) _icon[8].Draw(mDC, board.pt.x - 470, board.pt.y + 180, 80, 80, 0, 0, _icon[8].GetWidth(), _icon[8].GetHeight());
 			else _icon[9].Draw(mDC, board.pt.x - 470, board.pt.y + 180, 80, 80, 0, 0, _icon[9].GetWidth(), _icon[9].GetHeight());
-
+			_item_info[0].Draw(mDC, board.pt.x - 390, board.pt.y + 190, 270, 60, 0, 0, _item_info[0].GetWidth(), _item_info[0].GetHeight());
 			if (items[1]) _icon[10].Draw(mDC, board.pt.x - 470, board.pt.y + 270, 80, 80, 0, 0, _icon[10].GetWidth(), _icon[10].GetHeight());
 			else _icon[11].Draw(mDC, board.pt.x - 470, board.pt.y + 270, 80, 80, 0, 0, _icon[11].GetWidth(), _icon[11].GetHeight());
-
+			_item_info[1].Draw(mDC, board.pt.x - 390, board.pt.y + 280, 270, 60, 0, 0, _item_info[1].GetWidth(), _item_info[1].GetHeight());
 			if (items[2]) _icon[12].Draw(mDC, board.pt.x - 470, board.pt.y + 360, 80, 80, 0, 0, _icon[12].GetWidth(), _icon[12].GetHeight());
 			else _icon[13].Draw(mDC, board.pt.x - 470, board.pt.y + 360, 80, 80, 0, 0, _icon[13].GetWidth(), _icon[13].GetHeight());
-
+			_item_info[2].Draw(mDC, board.pt.x - 390, board.pt.y + 370, 270, 60, 0, 0, _item_info[2].GetWidth(), _item_info[2].GetHeight());
 
 			SetTextColor(mDC, RGB(0, 0, 0));
-			// 2048 °İÀÚ¹«´Ì ±×¸®±â
+			// 2048 ê²©ìë¬´ëŠ¬ ê·¸ë¦¬ê¸°
 
 			for (int i = 0; i < line + 1; ++i) {
 				MoveToEx(mDC, board.pt.x, board.pt.y + (board.height / line) * i, NULL);
@@ -503,26 +517,26 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT iMsg, WPARAM wParam, LPARAM lParam) {
 				}
 			}
 		}
-		// ½ÃÀÛ ÆäÀÌÁö
+		// ì‹œì‘ í˜ì´ì§€
 		if (page == 0) {
 			_title.Draw(mDC, 0, 0, clRect.right, clRect.bottom, start.x, 0, _title.GetWidth(), _title.GetHeight());
-
 		}
-		// ÀÌµ¿ ÆäÀÌÁö
+
+		// ì´ë™ í˜ì´ì§€
 		if (page == 1) {
 			if (playerMove) _player[1].Draw(mDC, player.x, player.y, _player[1].GetWidth(), _player[1].GetHeight());
 			else _player[0].Draw(mDC, player.x, player.y, _player[0].GetWidth(), _player[0].GetHeight());
 			if (!MoveturnCnt) {
 				_background[1].Draw(mDC, menu.x, menu.y, menusize, menusize, 0, 0, _background[1].GetWidth(), _background[1].GetHeight());
-				if (stage == 14) // ´ÙÀ½ ½ºÅ×ÀÌÁö°¡ 15°¡ ¾Æ´Ï¶ó¸é ¸ó½ºÅÍ, »óÀÚ, ?¸¦ °íÁ¤À¸·Î Ãâ·Â, ¾Æ´Ï¶ó¸é º¸½º ÀÌ¹ÌÁö·Î Ãâ·Â
+				if (stage == 14) // ë‹¤ìŒ ìŠ¤í…Œì´ì§€ê°€ 15ê°€ ì•„ë‹ˆë¼ë©´ ëª¬ìŠ¤í„°, ìƒì, ?ë¥¼ ê³ ì •ìœ¼ë¡œ ì¶œë ¥, ì•„ë‹ˆë¼ë©´ ë³´ìŠ¤ ì´ë¯¸ì§€ë¡œ ì¶œë ¥
 					for (int i = 0; i < 3; i++) _icon[3].Draw(mDC, nextMap[i]);
 				else
 					for (int i = 0; i < 3; i++) _icon[i].Draw(mDC, nextMap[i]);
 			}
 		}
 
-		// ÀüÅõ && º¸½º ÆäÀÌÁö
-		if (page == 2) {
+		// ì „íˆ¬ && ë³´ìŠ¤ í˜ì´ì§€
+		if (page == 2 || page == 5) {
 			if (itemUse[0]) _icon[8].Draw(mDC, player.x, player.y + _player[0].GetHeight() + 10, 50, 50, 0, 0, _icon[8].GetWidth(), _icon[8].GetHeight());
 			else _icon[9].Draw(mDC, player.x, player.y + _player[0].GetHeight() + 10, 50, 50, 0, 0, _icon[9].GetWidth(), _icon[9].GetHeight());
 
@@ -532,19 +546,23 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT iMsg, WPARAM wParam, LPARAM lParam) {
 			if (itemUse[2]) _icon[12].Draw(mDC, player.x + 120, player.y + _player[0].GetHeight() + 10, 50, 50, 0, 0, _icon[12].GetWidth(), _icon[12].GetHeight());
 			else _icon[13].Draw(mDC, player.x + 120, player.y + _player[0].GetHeight() + 10, 50, 50, 0, 0, _icon[13].GetWidth(), _icon[13].GetHeight());
 
+			if (bossPattern) {
+				_background[4].Draw(mDC, curtain.x, curtain.y, boardsize + 40, boardsize + 80, 0, 0, _background[4].GetWidth(), _background[4].GetHeight()); // ï¿½ï¿½ï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½ ï¿½ï¿½ï¿½Ì¶ï¿½ï¿½ Ä¿Æ° Ç¥ï¿½ï¿½
+			}
+
 			if (playerAttack) {
-				_player[2].Draw(mDC, player.x, player.y + 30, _player[2].GetWidth() / 2, _player[2].GetHeight() / 2); // ÇÃ·¹ÀÌ¾î °ø°İ ¸ğ¼Ç
+				_player[2].Draw(mDC, player.x, player.y + 30, _player[2].GetWidth() / 2, _player[2].GetHeight() / 2); // í”Œë ˆì´ì–´ ê³µê²© ëª¨ì…˜
 			}
 			else if (playerDefend) {
-				_player[3].Draw(mDC, player.x, player.y, _player[0].GetWidth(), _player[0].GetHeight()); // ÇÃ·¹ÀÌ¾î ¹æ¾î ¸ğ¼Ç
+				_player[3].Draw(mDC, player.x, player.y, _player[0].GetWidth(), _player[0].GetHeight()); // í”Œë ˆì´ì–´ ë°©ì–´ ëª¨ì…˜
 			}
-			else if (mobAttack % 10 == 1 && !attackCheck) { // ±ôºıÀÌ´Â °Å Ç¥Çö.
+			else if (mobAttack % 10 == 1 && !attackCheck) { // ê¹œë¹¡ì´ëŠ” ê±° í‘œí˜„.
 
 			}
-			else if (mobAttack % 10 == 1 && !defendCheck) { // ±ôºıÀÌ´Â °Å Ç¥Çö.
+			else if (mobAttack % 10 == 1 && !defendCheck) { // ê¹œë¹¡ì´ëŠ” ê±° í‘œí˜„.
 
 			}
-			else if (mobAttack && !defendCheck) { // ÇÃ·¹ÀÌ¾î ¹æ¾î ¸ğ¼Ç
+			else if (mobAttack && !defendCheck) { // í”Œë ˆì´ì–´ ë°©ì–´ ëª¨ì…˜
 				_player[3].Draw(mDC, player.x, player.y, _player[0].GetWidth(), _player[0].GetHeight());
 			}
 			else
@@ -557,6 +575,10 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT iMsg, WPARAM wParam, LPARAM lParam) {
 			if (itemUse[2]) {
 				wsprintf(showTurn, L"%d", mob.atk);
 				TextOut(mDC, clRect.right / 2 + 500, player.y - 50, showTurn, lstrlen(showTurn));
+			}
+
+			if (stage == 15) {
+				TextOut(mDC, clRect.right / 2 + 480, player.y - 50, L"?", _tcsclen(L"?"));
 			}
 
 			if (stage >= 11 && battleSel <= 3 && playeratk >= 0) {
@@ -579,7 +601,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT iMsg, WPARAM wParam, LPARAM lParam) {
 
 			SetTextColor(mDC, RGB(0, 0, 0));
 
-			if (!MoveturnCnt && !playerAttack && !playerDefend) {
+			if (!MoveturnCnt && !playerAttack && !playerDefend && !mobAttack && !bossPattern) {
 				_background[1].Draw(mDC, menu.x, menu.y, menusize, menusize, 0, 0, _background[1].GetWidth(), _background[1].GetHeight());
 				if (battleSel < 0) {
 					_icon[14].Draw(mDC, battle[0]);
@@ -605,32 +627,32 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT iMsg, WPARAM wParam, LPARAM lParam) {
 						_playeratk[temp].Draw(mDC, clRect.right / 2 + 300, player.y + (_player[0].GetHeight() - _mob[4].GetHeight() * 2), _mob[0].GetWidth() * 2, _mob[0].GetHeight() * 2);
 					}
 					if (playeratk < 0) {
-						TextOut(mDC, menu.x + 200, menu.y + 35 + chestsize, L"½Â¸®!", _tcsclen(L"½Â¸®!"));
+						TextOut(mDC, menu.x + 200, menu.y + 35 + chestsize, L"ìŠ¹ë¦¬!", _tcsclen(L"ìŠ¹ë¦¬!"));
 						_icon[17].Draw(mDC, eventcheck);
 					}
 				}
 				else if (battleSel == 4) {
-					TextOut(mDC, menu.x + 130, menu.y + 35 + chestsize, L"¸ó½ºÅÍ°¡ µµ¸Á°¬½À´Ï´Ù.", _tcsclen(L"¸ó½ºÅÍ°¡ µµ¸Á°¬½À´Ï´Ù."));
+					TextOut(mDC, menu.x + 130, menu.y + 35 + chestsize, L"ëª¬ìŠ¤í„°ê°€ ë„ë§ê°”ìŠµë‹ˆë‹¤.", _tcsclen(L"ëª¬ìŠ¤í„°ê°€ ë„ë§ê°”ìŠµë‹ˆë‹¤."));
 					_icon[17].Draw(mDC, eventcheck);
 				}
 			}
 		}
 
-		// ÀÌº¥Æ® ÆäÀÌÁö
+		// ì´ë²¤íŠ¸ í˜ì´ì§€
 		if (page == 3) {
 			_background[1].Draw(mDC, menu.x, menu.y, menusize, menusize, 0, 0, _background[1].GetWidth(), _background[1].GetHeight());
 			if (chestcheck) {
 				if (chestcurse) {
 					_chest[2].Draw(mDC, menu.x + menusize / 2 - chestsize / 2, menu.y + 5, chestsize, chestsize, 0, 0, _chest[2].GetWidth(), _chest[2].GetHeight());
-					TextOut(mDC, menu.x + 120, menu.y + 35 + chestsize, L"ÀúÁÖ¹ŞÀº »óÀÚ¸¦ ¿­¾ú½À´Ï´Ù.", _tcsclen(L"ÀúÁÖ¹ŞÀº »óÀÚ¸¦ ¿­¾ú½À´Ï´Ù."));
-					if (chestnothing) TextOut(mDC, menu.x + 80, menu.y + 65 + chestsize, L"±×·¯³ª ¾Æ¹« ÀÏµµ ÀÏ¾î³ªÁö ¾Ê¾Ò½À´Ï´Ù.", _tcsclen(L"±×·¯³ª ¾Æ¹« ÀÏµµ ÀÏ¾î³ªÁö ¾Ê¾Ò½À´Ï´Ù."));
-					else TextOut(mDC, menu.x + 130, menu.y + 65 + chestsize, L"¾ÆÀÌÅÛÀ» ÇÏ³ª ÀÒ½À´Ï´Ù.", _tcsclen(L"¾ÆÀÌÅÛÀ» ÇÏ³ª ÀÒ½À´Ï´Ù."));
+					TextOut(mDC, menu.x + 120, menu.y + 35 + chestsize, L"ì €ì£¼ë°›ì€ ìƒìë¥¼ ì—´ì—ˆìŠµë‹ˆë‹¤.", _tcsclen(L"ì €ì£¼ë°›ì€ ìƒìë¥¼ ì—´ì—ˆìŠµë‹ˆë‹¤."));
+					if (chestnothing) TextOut(mDC, menu.x + 80, menu.y + 65 + chestsize, L"ê·¸ëŸ¬ë‚˜ ì•„ë¬´ ì¼ë„ ì¼ì–´ë‚˜ì§€ ì•Šì•˜ìŠµë‹ˆë‹¤.", _tcsclen(L"ê·¸ëŸ¬ë‚˜ ì•„ë¬´ ì¼ë„ ì¼ì–´ë‚˜ì§€ ì•Šì•˜ìŠµë‹ˆë‹¤."));
+					else TextOut(mDC, menu.x + 130, menu.y + 65 + chestsize, L"ì•„ì´í…œì„ í•˜ë‚˜ ìƒìŠµë‹ˆë‹¤.", _tcsclen(L"ì•„ì´í…œì„ í•˜ë‚˜ ìƒìŠµë‹ˆë‹¤."));
 				}
 				else {
 					_chest[1].Draw(mDC, menu.x + menusize / 2 - chestsize / 2, menu.y + 5, chestsize, chestsize, 0, 0, _chest[1].GetWidth(), _chest[1].GetHeight());
-					TextOut(mDC, menu.x + 130, menu.y + 35 + chestsize, L"º¸¹° »óÀÚ¸¦ ¿­¾ú½À´Ï´Ù.", _tcsclen(L"º¸¹° »óÀÚ¸¦ ¿­¾ú½À´Ï´Ù."));
-					if (chestnothing) TextOut(mDC, menu.x + 100, menu.y + 65 + chestsize, L"±×·¯³ª ±× ¾ÈÀº ÅÖ ºñ¾îÀÖ¾ú½À´Ï´Ù.", _tcsclen(L"±×·¯³ª ±× ¾ÈÀº ÅÖ ºñ¾îÀÖ¾ú½À´Ï´Ù."));
-					else TextOut(mDC, menu.x + 130, menu.y + 65 + chestsize, L"¾ÆÀÌÅÛÀ» ÇÏ³ª ¾ò½À´Ï´Ù.", _tcsclen(L"¾ÆÀÌÅÛÀ» ÇÏ³ª ¾ò½À´Ï´Ù."));
+					TextOut(mDC, menu.x + 130, menu.y + 35 + chestsize, L"ë³´ë¬¼ ìƒìë¥¼ ì—´ì—ˆìŠµë‹ˆë‹¤.", _tcsclen(L"ë³´ë¬¼ ìƒìë¥¼ ì—´ì—ˆìŠµë‹ˆë‹¤."));
+					if (chestnothing) TextOut(mDC, menu.x + 100, menu.y + 65 + chestsize, L"ê·¸ëŸ¬ë‚˜ ê·¸ ì•ˆì€ í…… ë¹„ì–´ìˆì—ˆìŠµë‹ˆë‹¤.", _tcsclen(L"ê·¸ëŸ¬ë‚˜ ê·¸ ì•ˆì€ í…… ë¹„ì–´ìˆì—ˆìŠµë‹ˆë‹¤."));
+					else TextOut(mDC, menu.x + 130, menu.y + 65 + chestsize, L"ì•„ì´í…œì„ í•˜ë‚˜ ì–»ìŠµë‹ˆë‹¤.", _tcsclen(L"ì•„ì´í…œì„ í•˜ë‚˜ ì–»ìŠµë‹ˆë‹¤."));
 				}
 				eventcheck = { menu.x + menusize / 2 - 75,menu.y + menusize - 105,menu.x + menusize / 2 + 75,menu.y + menusize - 30 };
 				_icon[17].Draw(mDC, eventcheck);
@@ -643,7 +665,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT iMsg, WPARAM wParam, LPARAM lParam) {
 			}
 		}
 
-		// ½ºÇÎÅ©½º ÆäÀÌÁö
+		// ìŠ¤í•‘í¬ìŠ¤ í˜ì´ì§€
 		if (page == 4) {
 			_background[1].Draw(mDC, menu.x, menu.y, menusize, menusize, 0, 0, _background[1].GetWidth(), _background[1].GetHeight());
 			if (answerSel < 0) {
@@ -652,17 +674,63 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT iMsg, WPARAM wParam, LPARAM lParam) {
 			}
 			else {
 				if (answerSel == 2) {
-					TextOut(mDC, menu.x + 200, menu.y + 35 + chestsize, L"Á¤´ä!", _tcsclen(L"Á¤´ä!"));
-					if (chestnothing) TextOut(mDC, menu.x + 80, menu.y + 65 + chestsize, L"±×·¯³ª ¾Æ¹« ÀÏµµ ÀÏ¾î³ªÁö ¾Ê¾Ò½À´Ï´Ù.", _tcsclen(L"±×·¯³ª ¾Æ¹« ÀÏµµ ÀÏ¾î³ªÁö ¾Ê¾Ò½À´Ï´Ù."));
-					else TextOut(mDC, menu.x + 130, menu.y + 65 + chestsize, L"¾ÆÀÌÅÛÀ» ÇÏ³ª ¾ò½À´Ï´Ù.", _tcsclen(L"¾ÆÀÌÅÛÀ» ÇÏ³ª ¾ò½À´Ï´Ù."));
+					TextOut(mDC, menu.x + 200, menu.y + 35 + chestsize, L"ì •ë‹µ!", _tcsclen(L"ì •ë‹µ!"));
+					if (chestnothing) TextOut(mDC, menu.x + 80, menu.y + 65 + chestsize, L"ê·¸ëŸ¬ë‚˜ ì•„ë¬´ ì¼ë„ ì¼ì–´ë‚˜ì§€ ì•Šì•˜ìŠµë‹ˆë‹¤.", _tcsclen(L"ê·¸ëŸ¬ë‚˜ ì•„ë¬´ ì¼ë„ ì¼ì–´ë‚˜ì§€ ì•Šì•˜ìŠµë‹ˆë‹¤."));
+					else TextOut(mDC, menu.x + 130, menu.y + 65 + chestsize, L"ì•„ì´í…œì„ í•˜ë‚˜ ì–»ìŠµë‹ˆë‹¤.", _tcsclen(L"ì•„ì´í…œì„ í•˜ë‚˜ ì–»ìŠµë‹ˆë‹¤."));
 				}
 				else {
-					TextOut(mDC, menu.x + 200, menu.y + 35 + chestsize, L"¿À´ä!", _tcsclen(L"¿À´ä!"));
-					TextOut(mDC, menu.x + 130, menu.y + 65 + chestsize, L"Ã¼·ÂÀ» ÇÑ Ä­ ÀÒ½À´Ï´Ù.", _tcslen(L"Ã¼·ÂÀ» ÇÑ Ä­ ÀÒ½À´Ï´Ù."));
+					TextOut(mDC, menu.x + 200, menu.y + 35 + chestsize, L"ì˜¤ë‹µ!", _tcsclen(L"ì˜¤ë‹µ!"));
+					TextOut(mDC, menu.x + 130, menu.y + 65 + chestsize, L"ì²´ë ¥ì„ í•œ ì¹¸ ìƒìŠµë‹ˆë‹¤.", _tcslen(L"ì²´ë ¥ì„ í•œ ì¹¸ ìƒìŠµë‹ˆë‹¤."));
 				}
 				eventcheck = { menu.x + menusize / 2 - 75, menu.y + menusize - 105,menu.x + menusize / 2 + 75,menu.y + menusize - 30 };
 				_icon[17].Draw(mDC, eventcheck);
 			}
+		}
+		if (gameclear) {
+			KillTimer(hWnd, 1);
+			Graphics graphics(mDC);
+			SolidBrush semiTransparentBrush(Color(200, 0, 0, 0));
+			HFONT hFont = CreateFont(30, 0, 0, 0, FW_BOLD, FALSE, FALSE, FALSE,
+				DEFAULT_CHARSET, OUT_DEFAULT_PRECIS, CLIP_DEFAULT_PRECIS,
+				ANTIALIASED_QUALITY, DEFAULT_PITCH | FF_SWISS, TEXT("ë§‘ì€ ê³ ë”•"));
+			HFONT hOldFont = (HFONT)SelectObject(mDC, hFont);
+			SetTextColor(mDC, RGB(255, 255, 255));
+			SetBkMode(mDC, TRANSPARENT);
+			graphics.FillRectangle(&semiTransparentBrush, 0, 0, clRect.right, clRect.bottom);
+			_gameclear.Draw(mDC, clRect.right / 2 - 300, 0, 600, clRect.bottom, 0, 0, _gameclear.GetWidth(), _gameclear.GetHeight());
+			wsprintf(t_gametime, L"ì´ ê²Œì„ì‹œê°„ : %dë¶„ %dì´ˆ %d", gametime / 6000, (gametime % 6000) / 100, gametime % 100);
+			TextOut(mDC, clRect.right / 2 - 200, 300, t_gametime, lstrlen(t_gametime));
+			wsprintf(t_battlecount, L"ì´ ì „íˆ¬ ìˆ˜ : %d", battlecount);
+			TextOut(mDC, clRect.right / 2 - 200, 400, t_battlecount, lstrlen(t_battlecount));
+			wsprintf(t_itemusecount, L"ì•„ì´í…œ ì‚¬ìš© íšŸìˆ˜ : %d", itemusecount);
+			TextOut(mDC, clRect.right / 2 - 200, 500, t_itemusecount, lstrlen(t_itemusecount));
+			wsprintf(t_quitmessage, L"Që¥¼ ëˆ„ë¥´ì‹œë©´ ë‚˜ê°€ì‹¤ ìˆ˜ ìˆìŠµë‹ˆë‹¤.");
+			TextOut(mDC, clRect.right / 2 - 200, 600, t_quitmessage, lstrlen(t_quitmessage));
+			SelectObject(mDC, hOldFont);
+			DeleteObject(hFont);
+		}
+		else if (gameover) {
+			KillTimer(hWnd, 1);
+			Graphics graphics(mDC);
+			SolidBrush semiTransparentBrush(Color(200, 0, 0, 0));
+			HFONT hFont = CreateFont(30, 0, 0, 0, FW_BOLD, FALSE, FALSE, FALSE,
+				DEFAULT_CHARSET, OUT_DEFAULT_PRECIS, CLIP_DEFAULT_PRECIS,
+				ANTIALIASED_QUALITY, DEFAULT_PITCH | FF_SWISS, TEXT("ë§‘ì€ ê³ ë”•"));
+			HFONT hOldFont = (HFONT)SelectObject(mDC, hFont);
+			SetTextColor(mDC, RGB(255, 255, 255));
+			SetBkMode(mDC, TRANSPARENT);
+			graphics.FillRectangle(&semiTransparentBrush, 0, 0, clRect.right, clRect.bottom);
+			_gameover.Draw(mDC, clRect.right / 2 - 300, 0, 600, clRect.bottom, 0, 0, _gameover.GetWidth(), _gameover.GetHeight());
+			wsprintf(t_gametime, L"ì´ ê²Œì„ì‹œê°„ : %dë¶„ %dì´ˆ %d", gametime / 6000, (gametime % 6000) / 100, gametime % 100);
+			TextOut(mDC, clRect.right / 2 - 200, 300, t_gametime, lstrlen(t_gametime));
+			wsprintf(t_battlecount, L"ì´ ì „íˆ¬ ìˆ˜ : %d", battlecount);
+			TextOut(mDC, clRect.right / 2 - 200, 400, t_battlecount, lstrlen(t_battlecount));
+			wsprintf(t_itemusecount, L"ì•„ì´í…œ ì‚¬ìš© íšŸìˆ˜ : %d", itemusecount);
+			TextOut(mDC, clRect.right / 2 - 200, 500, t_itemusecount, lstrlen(t_itemusecount));
+			wsprintf(t_quitmessage, L"Që¥¼ ëˆ„ë¥´ì‹œë©´ ë‚˜ê°€ì‹¤ ìˆ˜ ìˆìŠµë‹ˆë‹¤.");
+			TextOut(mDC, clRect.right / 2 - 200, 600, t_quitmessage, lstrlen(t_quitmessage));
+			SelectObject(mDC, hOldFont);
+			DeleteObject(hFont);
 		}
 
 		BitBlt(hDC, 0, 0, clRect.right, clRect.bottom, mDC, 0, 0, SRCCOPY);
@@ -672,26 +740,31 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT iMsg, WPARAM wParam, LPARAM lParam) {
 		EndPaint(hWnd, &ps);
 		break;
 	case WM_KEYDOWN:
-		if (!_2048move && !playerMove && MoveturnCnt) {
-			if (wParam == VK_LEFT) {
-				_2048arrow = _LT;
-			}
-			else if (wParam == VK_RIGHT) {
-				_2048arrow = _RT;
-			}
-			else if (wParam == VK_UP) {
-				_2048arrow = _UP;
-			}
-			else if (wParam == VK_DOWN) {
-				_2048arrow = _DN;
-			}
-			if (_2048arrow) {
-				moveCheck = 0;
-				for (int i = 0; i < line * line; ++i)
-					moveCheck += _2048startingmovecheck(numblock[i]);
-				if (moveCheck) {
-					if (page == 1) playerMove = 50;
-					_2048move = true;
+		if (gameclear || gameover) {
+			if (wParam == 'Q') PostQuitMessage(0);
+		}
+		else {
+			if (!_2048move && !playerMove && MoveturnCnt) {
+				if (wParam == VK_LEFT) {
+					_2048arrow = _LT;
+				}
+				else if (wParam == VK_RIGHT) {
+					_2048arrow = _RT;
+				}
+				else if (wParam == VK_UP) {
+					_2048arrow = _UP;
+				}
+				else if (wParam == VK_DOWN) {
+					_2048arrow = _DN;
+				}
+				if (_2048arrow) {
+					moveCheck = 0;
+					for (int i = 0; i < line * line; ++i)
+						moveCheck += _2048startingmovecheck(numblock[i]);
+					if (moveCheck) {
+						if (page == 1) playerMove = 50;
+						_2048move = true;
+					}
 				}
 			}
 		}
@@ -709,34 +782,40 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT iMsg, WPARAM wParam, LPARAM lParam) {
 				for (int i = 0; i < 3; i++) {
 					if (PtInRect(&nextMap[i], m)) {
 						nextSel = i;
+						stage++;
 						break;
 					}
 				}
 			}
+
 			if (stage == 14) nextSel = 3;
 			switch (nextSel) {
-			case 0: // ¸ó½ºÅÍ
-				// ¸ó½ºÅÍ ÇÁ¸®¼Â °¡Á®¿À±â
+			case 0: // ëª¬ìŠ¤í„°
+				// ëª¬ìŠ¤í„° í”„ë¦¬ì…‹ ê°€ì ¸ì˜¤ê¸°
 				if (stage >= 11) mob.atk = pow(2, rand() % 5 + 5);
 				else if (stage >= 6) mob.atk = pow(2, rand() % 5 + 3);
 				else if (stage >= 1) mob.atk = pow(2, rand() % 5 + 1);
-				page = 2; // ÀüÅõÆäÀÌÁö µ¹ÀÔ
+				page = 2; // ì „íˆ¬í˜ì´ì§€ ëŒì…
+				MoveturnCnt = 5;
+				battlecount++;
 				break;
-			case 1: // »óÀÚ
-				page = 3; // ÀÌº¥Æ® && »óÀÚ·Î ÀÌµ¿
+			case 1: // ìƒì
+				page = 3; // ì´ë²¤íŠ¸ && ìƒìë¡œ ì´ë™
 				chestcheck = false;
 				break;
-			case 2: // ½ºÇÎÅ©½º
-				page = 4; // ÀÌº¥Æ® && ½ºÇÎÅ©½º·Î ÀÌµ¿
+			case 2: // ìŠ¤í•‘í¬ìŠ¤
+				page = 4; // ì´ë²¤íŠ¸ && ìŠ¤í•‘í¬ìŠ¤ë¡œ ì´ë™
 				randQ = rand() % 10;
 				answerSel = -1;
 				break;
-			case 3: // º¸½º
+			case 3: // ë³´ìŠ¤
 				page = 5;
+				mob.hp = 6;
+				mob.atk = pow(2, rand() % 4 + 6);
 				break;
 			}
 		}
-		else if (page == 2) { // ÀÏ¹İ ¸ó½ºÅÍ ÆäÀÌÁö
+		else if (page == 2 || page == 5) { // ì¼ë°˜ ëª¬ìŠ¤í„° í˜ì´ì§€
 			if (battleSel < 0) {
 				for (int i = 0; i < 3; ++i) {
 					if (PtInRect(&battle[i], m)) {
@@ -752,21 +831,21 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT iMsg, WPARAM wParam, LPARAM lParam) {
 							if (itemUse[0]) {
 								itemUse[0] = false;
 								if (numblock[i].num * 2 > mob.atk) {
-									playerAttack = 10; // °ø°İ ¾Ö´Ï¸ŞÀÌ¼Ç ½Ã°£
+									playerAttack = 10; // ê³µê²© ì• ë‹ˆë©”ì´ì…˜ ì‹œê°„
 									attackCheck = defendCheck = true;
 								}
 								else {
-									playerAttack = 50; // °ø°İ ½ÇÆĞ ¾Ö´Ï¸ŞÀÌ¼Ç ½Ã°£
+									playerAttack = 50; // ê³µê²© ì‹¤íŒ¨ ì• ë‹ˆë©”ì´ì…˜ ì‹œê°„
 									attackCheck = false;
 								}
 							}
 							else {
 								if (numblock[i].num > mob.atk) {
-									playerAttack = 50; // °ø°İ ¾Ö´Ï¸ŞÀÌ¼Ç ½Ã°£
+									playerAttack = 50; // ê³µê²© ì• ë‹ˆë©”ì´ì…˜ ì‹œê°„
 									attackCheck = defendCheck = true;
 								}
 								else {
-									playerAttack = 50; // °ø°İ ½ÇÆĞ ¾Ö´Ï¸ŞÀÌ¼Ç ½Ã°£
+									playerAttack = 50; // ê³µê²© ì‹¤íŒ¨ ì• ë‹ˆë©”ì´ì…˜ ì‹œê°„
 									attackCheck = false;
 								}
 							}
@@ -781,18 +860,18 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT iMsg, WPARAM wParam, LPARAM lParam) {
 					for (int i = 0; i < line * line; ++i) {
 						if (m.x > numblock[i].rpt.x && m.x < numblock[i].rpt.x + numblock[i].size && m.y > numblock[i].rpt.y && m.y < numblock[i].rpt.y + numblock[i].size) {
 							if (numblock[i].num >= mob.atk / 2) {
-								playerDefend = 50;// ¹æ¾î ¾Ö´Ï¸ŞÀÌ¼Ç ½Ã°£
+								playerDefend = 50;// ë°©ì–´ ì• ë‹ˆë©”ì´ì…˜ ì‹œê°„
 								attackCheck = defendCheck = true;
-								mob.atk /= 2;
+								if (page == 2 || (page == 5 && mob.atk >= 4))mob.atk /= 2;
 							}
 							else {
 								if (itemUse[1]) {
-									playerDefend = 50; // ¹æ¾î ¾Ö´Ï¸ŞÀÌ¼Ç ½Ã°£
+									playerDefend = 50; // ë°©ì–´ ì• ë‹ˆë©”ì´ì…˜ ì‹œê°„
 									attackCheck = defendCheck = true;
 									itemUse[1] = false;
 								}
 								else {
-									playerDefend = 50; // ¹æ¾î ½ÇÆĞ ¾Ö´Ï¸ŞÀÌ¼Ç ½Ã°£
+									playerDefend = 50; // ë°©ì–´ ì‹¤íŒ¨ ì• ë‹ˆë©”ì´ì…˜ ì‹œê°„
 									defendCheck = false;
 								}
 							}
@@ -814,6 +893,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT iMsg, WPARAM wParam, LPARAM lParam) {
 							if (items[i]) {
 								itemUse[i] = true;
 								items[i] = false;
+								itemusecount++;
 							}
 						}
 					}
@@ -821,7 +901,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT iMsg, WPARAM wParam, LPARAM lParam) {
 						battleSel = -1;
 					}
 					break;
-				case 3: // ÀÏ¹İ ¸ó½ºÅÍ Ã³Ä¡ ½Ã
+				case 3: // ì¼ë°˜ ëª¬ìŠ¤í„° ì²˜ì¹˜ ì‹œ
 					if (PtInRect(&eventcheck, m)) {
 						page = 1;
 						playeratk = 0;
@@ -829,30 +909,27 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT iMsg, WPARAM wParam, LPARAM lParam) {
 						nextSel = battleSel = -1;
 						start.x = 0;
 						MoveturnCnt = 10;
-						stage++;
 					}
 					break;
-				case 4: // ÀÏ¹İ ¸ó½ºÅÍ µµ¸Á ½Ã
+				case 4: // ì¼ë°˜ ëª¬ìŠ¤í„° ë„ë§ ì‹œ
 					if (PtInRect(&eventcheck, m)) {
 						page = 1;
 						for (int i = 0; i < 3; ++i) itemUse[i] = false;
 						nextSel = battleSel = -1;
 						start.x = 0;
 						MoveturnCnt = 10;
-						stage++;
 					}
 					break;
 				}
 			}
 		}
-		else if (page == 3) { // ÀÌº¥Æ® ÆäÀÌÁö
+		else if (page == 3) { // ì´ë²¤íŠ¸ í˜ì´ì§€
 			if (chestcheck) {
 				if (PtInRect(&eventcheck, m)) {
 					page = 1;
 					nextSel = -1;
 					start.x = 0;
 					MoveturnCnt = 10;
-					stage++;
 				}
 			}
 			else {
@@ -899,23 +976,22 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT iMsg, WPARAM wParam, LPARAM lParam) {
 					nextSel = -1;
 					start.x = 0;
 					MoveturnCnt = 10;
-					stage++;
 				}
 			}
 		}
-		else if (page == 4) { // ½ºÇÎÅ©½º ÆäÀÌÁö
+		else if (page == 4) { // ìŠ¤í•‘í¬ìŠ¤ í˜ì´ì§€
 			if (answerSel < 0) {
 				for (int i = 0; i < 3; i++) {
 					if (PtInRect(&answer[i], m))
 						answerSel = i;
 				}
 				if (answerSel == 2) {
-					chestnothing = true; 					// ¸¸¾à ¾ÆÀÌÅÛ ÀÌ¹Ì ÀÖÀ¸¸é ¾Æ¹« ÀÏµµ ¾ø¾úÀ½		
+					chestnothing = true; 					// ë§Œì•½ ì•„ì´í…œ ì´ë¯¸ ìˆìœ¼ë©´ ì•„ë¬´ ì¼ë„ ì—†ì—ˆìŒ		
 					for (int i = 0; i < 3; ++i) {
 						if (!items[i])
 							chestnothing = false;
 					}
-					if (!chestnothing) {                   // ¾ÆÀÌÅÛ Áö±Ş
+					if (!chestnothing) {                   // ì•„ì´í…œ ì§€ê¸‰
 						while (true) {
 							int itemran = rand() % 3;
 							if (!items[itemran]) {
@@ -928,15 +1004,14 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT iMsg, WPARAM wParam, LPARAM lParam) {
 				else if (answerSel >= 0) {
 					playerHp--;
 				}
-				// È®ÀÎ ¹öÆ° ¶ç¿ì±â (answerSelÀÌ 0ÀÌ»óÀÌ¸é PAINT¿¡¼­ ¶ç¿ì°Ô Ã³¸®ÇÏ¸é µÊ.)
+				// í™•ì¸ ë²„íŠ¼ ë„ìš°ê¸° (answerSelì´ 0ì´ìƒì´ë©´ PAINTì—ì„œ ë„ìš°ê²Œ ì²˜ë¦¬í•˜ë©´ ë¨.)
 			}
 			else {
-				if (PtInRect(&eventcheck, m)) { // È®ÀÎ ¹öÆ° Å¬¸¯ È®ÀÎ
+				if (PtInRect(&eventcheck, m)) { // í™•ì¸ ë²„íŠ¼ í´ë¦­ í™•ì¸
 					nextSel = answerSel = -1;
 					MoveturnCnt = 10;
 					start.x = 0;
-					page = 1; // È®ÀÎ ¹öÆ° Å¬¸¯ ½Ã, ÀÌµ¿ ÆäÀÌÁö·Î ÀüÈ¯
-					stage++;
+					page = 1; // í™•ì¸ ë²„íŠ¼ í´ë¦­ ì‹œ, ì´ë™ í˜ì´ì§€ë¡œ ì „í™˜
 				}
 			}
 		}
@@ -981,6 +1056,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT iMsg, WPARAM wParam, LPARAM lParam) {
 
 void CALLBACK TimerProc(HWND hWnd, UINT iMsg, UINT idEvent, DWORD dwTime)
 {
+	gametime++;
 	if (playerMove) playerMove--;
 
 	if (playerMove && playerMove % 10 == 0) start.x += 3;
@@ -994,10 +1070,32 @@ void CALLBACK TimerProc(HWND hWnd, UINT iMsg, UINT idEvent, DWORD dwTime)
 						playeratk = 30;
 					battleSel = 3;
 				}
-				else { // º¸½º »ó´ë ½Ã,
+				else { // ë³´ìŠ¤ ìƒëŒ€ ì‹œ,
 					mob.hp--;
-					battleSel = -1;
-					MoveturnCnt = 10;
+					if (mob.hp == 0) {
+
+					}
+					else if (mob.hp == 2) {
+						bossPhase = 3;
+
+					}
+					else if (mob.hp == 4) {
+						bossPhase = 2;
+
+					}
+					else {
+						bossPattern = rand() % 101 + bossPatternStack;
+						if (bossPattern >= 75) {
+							bossPattern = 2;
+							bossPatternStack = 0;
+						}
+						else {
+							bossPattern = 0;
+							bossPatternStack += 50;
+							battleSel = -1;
+							MoveturnCnt = 10;
+						}
+					}
 				}
 			}
 			else {
@@ -1024,6 +1122,45 @@ void CALLBACK TimerProc(HWND hWnd, UINT iMsg, UINT idEvent, DWORD dwTime)
 				battleSel = 4;
 			}
 			else {
+				if (page == 2) {
+					battleSel = -1;
+					MoveturnCnt = 10;
+				}
+				else {
+					bossPattern = rand() % 101 + bossPatternStack;
+					if (bossPattern >= 75) {
+						bossPattern = 2;
+						bossPatternStack = 0;
+					}
+					else {
+						bossPattern = 0;
+						bossPatternStack += 50;
+						battleSel = -1;
+						MoveturnCnt = 10;
+					}
+				}
+			}
+		}
+	}
+
+	if (bossPattern) {
+		if (bossPattern == 2) {
+			curtain = { board.pt.x - 20, -boardsize };
+			bossPattern = 1;
+		}
+		else if (bossPattern == 1) {
+			curtain.y += 10;
+			if (curtain.y == 0) {
+				for (int i = 0; i < bossPhase; ++i)
+					_2048blockchange();
+
+				bossPattern = -1;
+			}
+		}
+		else if (bossPattern == -1) {
+			curtain.y -= 10;
+			if (curtain.y == -boardsize) {
+				bossPattern = 0;
 				battleSel = -1;
 				MoveturnCnt = 10;
 			}
